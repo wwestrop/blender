@@ -28,6 +28,10 @@
  *  \ingroup blenloader
  */
 
+struct IDProperty;
+void _IDP_WriteProperty(struct IDProperty *prop, void *wd);
+#define IDP_WriteProperty(prop, wd) \
+	{ (void)_IDP_WriteProperty; (void)wd; prop = NULL; } (void)0
 
 /*
  * FILEFORMAT: IFF-style structure  (but not IFF compatible!)
@@ -516,7 +520,6 @@ static void writelist(WriteData *wd, int filecode, const char *structname, ListB
 /* *************** writing some direct data structs used in more code parts **************** */
 /*These functions are used by blender's .blend system for file saving/loading.*/
 void IDP_WriteProperty_OnlyData(IDProperty *prop, void *wd);
-void IDP_WriteProperty(IDProperty *prop, void *wd);
 
 static void IDP_WriteArray(IDProperty *prop, void *wd)
 {
@@ -582,7 +585,7 @@ void IDP_WriteProperty_OnlyData(IDProperty *prop, void *wd)
 	}
 }
 
-void IDP_WriteProperty(IDProperty *prop, void *wd)
+void _IDP_WriteProperty(IDProperty *prop, void *wd)
 {
 	writestruct(wd, DATA, "IDProperty", 1, prop);
 	IDP_WriteProperty_OnlyData(prop, wd);

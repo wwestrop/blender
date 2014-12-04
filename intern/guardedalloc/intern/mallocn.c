@@ -106,7 +106,7 @@ void MEM_use_guarded_allocator(void)
 	MEM_reallocN_id = MEM_guarded_reallocN_id;
 	MEM_recallocN_id = MEM_guarded_recallocN_id;
 	MEM_callocN = MEM_guarded_callocN;
-	MEM_mallocN = MEM_guarded_mallocN;
+	MEM_mallocN = MEM_guarded_callocN;
 	MEM_mallocN_aligned = MEM_guarded_mallocN_aligned;
 	MEM_mapallocN = MEM_guarded_mapallocN;
 	MEM_printmemlist_pydict = MEM_guarded_printmemlist_pydict;
