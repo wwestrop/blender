@@ -1738,6 +1738,8 @@ void UI_draw_box_shadow(unsigned char alpha, float minx, float miny, float maxx,
 
 void ui_draw_dropshadow(const rctf *rct, float radius, float aspect, float alpha, int UNUSED(select))
 {
+
+	unsigned char scolor[3];
 	int i;
 	float rad;
 	float a;
@@ -1761,10 +1763,12 @@ void ui_draw_dropshadow(const rctf *rct, float radius, float aspect, float alpha
 		a = i * aspect;
 	}
 
+	UI_GetThemeColor3ubv(TH_MENU_SHADOW, scolor);
 	calpha = dalpha;
 	for (; i--; a -= aspect) {
-		/* alpha ranges from 2 to 20 or so */
-		glColor4f(0.0f, 0.0f, 0.0f, calpha);
+		/* alpha ranges from 2 to 20 or so, use colors from menu shadow theme */
+		glColor4ub(scolor[0], scolor[1], scolor[2], (calpha * 255.0f));
+		//glColor4ub(255, 0, 0, (calpha * 255.0f));
 		calpha += dalpha;
 		
 		UI_draw_roundbox_gl_mode(GL_POLYGON, rct->xmin - a, rct->ymin - a, rct->xmax + a, rct->ymax - 10.0f + a, rad + a);

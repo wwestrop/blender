@@ -117,6 +117,7 @@ typedef struct uiStyle {
 	short panelouter;
 
 	short pad;
+
 } uiStyle;
 
 typedef struct uiWidgetColors {
@@ -170,9 +171,10 @@ typedef struct ThemeUI {
 
 	char widget_emboss[4];
 
-	/* fac: 0 - 1 for blend factor, width in pixels */
+	/* menu shadows: fac: 0 - 1 for blend factor, width: size of shadow in pixels, shadow: color of shadow */
 	float menu_shadow_fac;
 	short menu_shadow_width;
+	char menu_shadow[4];
 	
 	short pad[3];
 	
@@ -362,6 +364,7 @@ typedef struct bTheme {
 	char name[32];
 	
 	ThemeUI tui;
+	int pad0;
 	
 	/* Individual Spacetypes */
 	/* note: ensure UI_THEMESPACE_END is updated when adding */

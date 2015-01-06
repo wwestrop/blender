@@ -753,13 +753,15 @@ class USERPREF_PT_theme(Panel):
             padding = subsplit.split(percentage=0.15)
             colsub = padding.column()
             colsub = padding.column()
-            colsub.row().prop(ui, "menu_shadow_fac")
+            colsub.row().prop(ui, "menu_shadow")
+            
 
             subsplit = row.split(percentage=0.85)
 
             padding = subsplit.split(percentage=0.15)
             colsub = padding.column()
             colsub = padding.column()
+            colsub.row().prop(ui, "menu_shadow_fac")
             colsub.row().prop(ui, "menu_shadow_width")
 
             row = col.row()

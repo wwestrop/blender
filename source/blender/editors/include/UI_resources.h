@@ -274,6 +274,8 @@ enum {
 	
 	TH_WIDGET_EMBOSS,
 
+	TH_MENU_SHADOW,
+
 	TH_AXIS_X,		/* X/Y/Z Axis */
 	TH_AXIS_Y,
 	TH_AXIS_Z,

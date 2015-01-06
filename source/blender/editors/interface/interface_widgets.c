@@ -2124,7 +2124,7 @@ static void widget_softshadow(const rcti *rect, int roundboxalign, const float r
 		
 		round_box_shadow_edges(wtb.outer_v, &rect1, radin, UI_CNR_ALL, (float)step);
 		
-		glColor4f(0.0f, 0.0f, 0.0f, alphastep * (1.0f - expfac));
+		glColor4ub(btheme->tui.menu_shadow[0], btheme->tui.menu_shadow[1], btheme->tui.menu_shadow[2], (alphastep * (1.0f - expfac)) * 255.0f);
 
 		widget_verts_to_quad_strip(&wtb, totvert, quad_strip);
 

@@ -645,6 +645,9 @@ const unsigned char *UI_ThemeGetColorPtr(bTheme *btheme, int spacetype, int colo
 				case TH_WIDGET_EMBOSS:
 					cp = btheme->tui.widget_emboss; break;
 
+				case TH_MENU_SHADOW:
+					cp = btheme->tui.menu_shadow; break;
+
 				case TH_AXIS_X:
 					cp = btheme->tui.xaxis; break;
 				case TH_AXIS_Y:
@@ -844,6 +847,8 @@ void ui_theme_init_default(void)
 	rgba_char_args_set(btheme->tui.wcol_tooltip.text, 255, 255, 255, 255);
 	
 	rgba_char_args_set_fl(btheme->tui.widget_emboss, 1.0f, 1.0f, 1.0f, 0.02f);
+
+	rgba_char_args_set(btheme->tui.menu_shadow, 0,   0,   0, 255);
 
 	rgba_char_args_set(btheme->tui.xaxis, 220,   0,   0, 255);
 	rgba_char_args_set(btheme->tui.yaxis,   0, 220,   0, 255);
