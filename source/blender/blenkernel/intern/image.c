@@ -803,7 +803,9 @@ Image *BKE_image_add_generated(Main *bmain, unsigned int width, unsigned int hei
 	return ima;
 }
 
-/* creates an image image owns the imbuf passed */
+/* Create an image image from ibuf. The refcount of ibuf is increased,
+ * caller should take care to drop its reference by calling
+ * IMB_freeImBuf if needed. */
 Image *BKE_image_add_from_imbuf(ImBuf *ibuf)
 {
 	/* on save, type is changed to FILE in editsima.c */
@@ -860,14 +862,14 @@ void BKE_image_memorypack(Image *ima)
 
 void BKE_image_tag_time(Image *ima)
 {
-	ima->lastused = (int)PIL_check_seconds_timer();
+	ima->lastused = PIL_check_seconds_timer_i();
 }
 
 #if 0
 static void tag_all_images_time()
 {
 	Image *ima;
-	int ctime = (int)PIL_check_seconds_timer();
+	int ctime = PIL_check_seconds_timer_i();
 
 	ima = G.main->image.first;
 	while (ima) {
@@ -2107,6 +2109,14 @@ void BKE_image_path_from_imtype(
 	image_path_makepicstring(string, base, relbase, frame, imtype, NULL, use_ext, use_frames);
 }
 
+struct anim *openanim_noload(const char *name, int flags, int streamindex, char colorspace[IMA_MAX_SPACE])
+{
+	struct anim *anim;
+
+	anim = IMB_open_anim(name, flags, streamindex, colorspace);
+	return anim;
+}
+
 /* used by sequencer too */
 struct anim *openanim(const char *name, int flags, int streamindex, char colorspace[IMA_MAX_SPACE])
 {
@@ -2170,11 +2180,6 @@ Image *BKE_image_verify_viewer(int type, const char *name)
 		id_us_plus(&ima->id);
 
 	return ima;
-}
-
-void BKE_image_assign_ibuf(Image *ima, ImBuf *ibuf)
-{
-	image_assign_ibuf(ima, ibuf, IMA_NO_INDEX, 0);
 }
 
 void BKE_image_walk_all_users(const Main *mainp, void *customdata,
@@ -2600,11 +2605,15 @@ static ImBuf *image_load_movie_file(Image *ima, ImageUser *iuser, int frame)
 
 	if (ima->anim == NULL) {
 		char str[FILE_MAX];
+		int flags = IB_rect;
+		if (ima->flag & IMA_DEINTERLACE) {
+			flags |= IB_animdeinterlace;
+		}
 
 		BKE_image_user_file_path(iuser, ima, str);
 
 		/* FIXME: make several stream accessible in image editor, too*/
-		ima->anim = openanim(str, IB_rect, 0, ima->colorspace_settings.name);
+		ima->anim = openanim(str, flags, 0, ima->colorspace_settings.name);
 
 		/* let's initialize this user */
 		if (ima->anim && iuser && iuser->frames == 0)

@@ -164,7 +164,7 @@ ScrArea *render_view_open(bContext *C, int mx, int my)
 
 		/* if the active screen is already in fullscreen mode, skip this and
 		 * unset the area, so that the fullscreen area is just changed later */
-		if (sa->full) {
+		if (sa && sa->full) {
 			sa = NULL;
 		}
 		else {
@@ -194,6 +194,11 @@ ScrArea *render_view_open(bContext *C, int mx, int my)
 
 				/* makes ESC go back to prev space */
 				sima->flag |= SI_PREVSPACE;
+
+				/* we already had a fullscreen here -> mark new space as a stacked fullscreen */
+				if (sa->full) {
+					sa->flag |= AREA_FLAG_STACKED_FULLSCREEN;
+				}
 			}
 			else {
 				/* use any area of decent size */

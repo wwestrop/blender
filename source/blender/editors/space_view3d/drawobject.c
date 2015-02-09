@@ -732,7 +732,7 @@ void drawcircball(int mode, const float cent[3], float rad, float tmat[4][4])
 }
 
 /* circle for object centers, special_color is for library or ob users */
-static void drawcentercircle(View3D *v3d, RegionView3D *rv3d, const float co[3], int selstate, int special_color)
+static void drawcentercircle(View3D *v3d, RegionView3D *rv3d, const float co[3], int selstate, bool special_color)
 {
 	const float size = ED_view3d_pixel_size(rv3d, co) * (float)U.obcenter_dia * 0.5f;
 	float verts[CIRCLE_RESOL][3];
@@ -740,6 +740,8 @@ static void drawcentercircle(View3D *v3d, RegionView3D *rv3d, const float co[3],
 	/* using gldepthfunc guarantees that it does write z values,
 	 * but not checks for it, so centers remain visible independent order of drawing */
 	if (v3d->zbuf) glDepthFunc(GL_ALWAYS);
+	/* write to near buffer always */
+	glDepthRange(0.0, 0.0);
 	glEnable(GL_BLEND);
 	
 	if (special_color) {
@@ -769,6 +771,7 @@ static void drawcentercircle(View3D *v3d, RegionView3D *rv3d, const float co[3],
 	/* finish up */
 	glDisableClientState(GL_VERTEX_ARRAY);
 
+	glDepthRange(0.0, 1.0);
 	glDisable(GL_BLEND);
 
 	if (v3d->zbuf) glDepthFunc(GL_LEQUAL);
@@ -4328,8 +4331,8 @@ static bool drawDispList_nobackface(Scene *scene, View3D *v3d, RegionView3D *rv3
 	ListBase *lb = NULL;
 	DispList *dl;
 	Curve *cu;
-	const short render_only = (v3d->flag2 & V3D_RENDER_OVERRIDE);
-	const short solid = (dt > OB_WIRE);
+	const bool render_only = (v3d->flag2 & V3D_RENDER_OVERRIDE) != 0;
+	const bool solid = (dt > OB_WIRE);
 
 	if (drawCurveDerivedMesh(scene, v3d, rv3d, base, dt) == false) {
 		return false;
@@ -7855,7 +7858,7 @@ void draw_object(Scene *scene, ARegion *ar, View3D *v3d, Base *base, const short
 		if (render_override) {
 			/* don't draw */
 		}
-		else if ((scene->basact) == base)
+		else if (is_obact)
 			do_draw_center = ACTIVE;
 		else if (base->flag & SELECT)
 			do_draw_center = SELECT;

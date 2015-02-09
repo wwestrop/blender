@@ -101,6 +101,7 @@ struct GPUMaterial {
 	int viewmatloc, invviewmatloc;
 	int obmatloc, invobmatloc;
 	int obcolloc, obautobumpscaleloc;
+	int cameratexcofacloc;
 
 	ListBase lamps;
 };
@@ -228,6 +229,8 @@ static int GPU_material_construct_end(GPUMaterial *material, const char *passnam
 			material->obcolloc = GPU_shader_get_uniform(shader, GPU_builtin_name(GPU_OBCOLOR));
 		if (material->builtins & GPU_AUTO_BUMPSCALE)
 			material->obautobumpscaleloc = GPU_shader_get_uniform(shader, GPU_builtin_name(GPU_AUTO_BUMPSCALE));
+		if (material->builtins & GPU_CAMERA_TEXCO_FACTORS)
+			material->cameratexcofacloc = GPU_shader_get_uniform(shader, GPU_builtin_name(GPU_CAMERA_TEXCO_FACTORS));
 		return 1;
 	}
 
@@ -277,7 +280,7 @@ bool GPU_lamp_override_visible(GPULamp *lamp, SceneRenderLayer *srl, Material *m
 		return true;
 }
 
-void GPU_material_bind(GPUMaterial *material, int oblay, int viewlay, double time, int mipmap, float viewmat[4][4], float viewinv[4][4], bool scenelock)
+void GPU_material_bind(GPUMaterial *material, int oblay, int viewlay, double time, int mipmap, float viewmat[4][4], float viewinv[4][4], float camerafactors[4], bool scenelock)
 {
 	if (material->pass) {
 		LinkData *nlink;
@@ -336,6 +339,16 @@ void GPU_material_bind(GPUMaterial *material, int oblay, int viewlay, double tim
 		}
 		if (material->builtins & GPU_INVERSE_VIEW_MATRIX) {
 			GPU_shader_uniform_vector(shader, material->invviewmatloc, 16, 1, (float*)viewinv);
+		}
+		if (material->builtins & GPU_CAMERA_TEXCO_FACTORS) {
+			if (camerafactors) {
+				GPU_shader_uniform_vector(shader, material->cameratexcofacloc, 4, 1, (float*)camerafactors);
+			}
+			else {
+				/* use default, no scaling no offset */
+				float borders[4] = {1.0f, 1.0f, 0.0f, 0.0f};
+				GPU_shader_uniform_vector(shader, material->cameratexcofacloc, 4, 1, (float*)borders);
+			}
 		}
 
 		GPU_pass_update_uniforms(material->pass);
@@ -1755,10 +1768,10 @@ static void gpu_lamp_calc_winmat(GPULamp *lamp)
 		orthographic_m4(lamp->winmat, -wsize, wsize, -wsize, wsize, lamp->d, lamp->clipend);
 	}
 	else {
-		angle= saacos(lamp->spotsi);
-		temp= 0.5f*lamp->size*cosf(angle)/sinf(angle);
-		pixsize= (lamp->d)/temp;
-		wsize= pixsize*0.5f*lamp->size;
+		angle = saacos(lamp->spotsi);
+		temp = 0.5f * lamp->size * cosf(angle) / sinf(angle);
+		pixsize = lamp->d / temp;
+		wsize = pixsize * 0.5f * lamp->size;
 		perspective_m4(lamp->winmat, -wsize, wsize, -wsize, wsize, lamp->d, lamp->clipend);
 	}
 }
