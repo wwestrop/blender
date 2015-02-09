@@ -3784,7 +3784,7 @@ uiBut *uiDefIconButO_ptr(uiBlock *block, int type, wmOperatorType *ot, int opcon
 	ui_but_update_and_icon_set(but, icon);
 	return but;
 }
-uiBut *uiDefIconButO(uiBlock *block, int type, const char *opname, int opcontext, int icon, int x, int y, short width, short height, const char *tip)
+uiBut *uiDefIconButO(uiBlock *block, eButType type, const char *opname, int opcontext, int icon, int x, int y, short width, short height, const char *tip)
 {
 	wmOperatorType *ot = WM_operatortype_find(opname, 0);
 	return uiDefIconButO_ptr(block, type, ot, opcontext, icon, x, y, width, height, tip);

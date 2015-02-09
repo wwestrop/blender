@@ -48,6 +48,8 @@
 
 #include "BIF_gl.h"
 
+#include "RNA_access.h"
+
 #include "WM_api.h"
 #include "WM_types.h"
 
@@ -60,8 +62,12 @@
 
 /* ******************** default callbacks for info space ***************** */
 
+
+/** Called during instantiation of sorts (differs from initialisation/initial registration). Happens when switching views? */
+/** Instantiate instances of the AreaRegions, wheras the init bit, more pre-defines their type (sort of class vs instance) */
 static SpaceLink *info_new(const bContext *UNUSED(C))
 {
+
 	ARegion *ar;
 	SpaceInfo *sinfo;
 	
@@ -76,20 +82,46 @@ static SpaceLink *info_new(const bContext *UNUSED(C))
 	BLI_addtail(&sinfo->regionbase, ar);
 	ar->regiontype = RGN_TYPE_HEADER;
 	ar->alignment = RGN_ALIGN_BOTTOM;
+
+
+
+
+
+
+
+	/* ribbon */
+	ar = MEM_callocN(sizeof(ARegion), "ribbon area for info");
+	BLI_addtail(&sinfo->regionbase, ar);
+	ar->regiontype = RGN_TYPE_UI;
+	ar->alignment = RGN_ALIGN_TOP;
+	ar->sizex = 1000;
+	ar->sizey = 100;
+	//ar->winrct
+	//ar-> // regiondata, panels, do_draw, uiblocks
+
+
+
+
+
+
+
 	
 	/* main area */
-	ar = MEM_callocN(sizeof(ARegion), "main area for info");
+	/*ar = MEM_callocN(sizeof(ARegion), "main area for info");
 	
 	BLI_addtail(&sinfo->regionbase, ar);
-	ar->regiontype = RGN_TYPE_WINDOW;
+	ar->regiontype = RGN_TYPE_WINDOW;*/
 	
 	/* keep in sync with console */
-	ar->v2d.scroll |= (V2D_SCROLL_RIGHT);
-	ar->v2d.align |= V2D_ALIGN_NO_NEG_X | V2D_ALIGN_NO_NEG_Y; /* align bottom left */
-	ar->v2d.keepofs |= V2D_LOCKOFS_X;
-	ar->v2d.keepzoom = (V2D_LOCKZOOM_X | V2D_LOCKZOOM_Y | V2D_LIMITZOOM | V2D_KEEPASPECT);
-	ar->v2d.keeptot = V2D_KEEPTOT_BOUNDS;
-	ar->v2d.minzoom = ar->v2d.maxzoom = 1.0f;
+	//ar->v2d.scroll |= (V2D_SCROLL_RIGHT);
+	//ar->v2d.align |= V2D_ALIGN_NO_NEG_X | V2D_ALIGN_NO_NEG_Y; /* align bottom left */
+	//ar->v2d.keepofs |= V2D_LOCKOFS_X;
+	//ar->v2d.keepzoom = (V2D_LOCKZOOM_X | V2D_LOCKZOOM_Y | V2D_LIMITZOOM | V2D_KEEPASPECT);
+	//ar->v2d.keeptot = V2D_KEEPTOT_BOUNDS;
+	//ar->v2d.minzoom = ar->v2d.maxzoom = 1.0f;
+
+
+	ar->do_draw = 5;
 
 	/* for now, aspect ratio should be maintained, and zoom is clamped within sane default limits */
 	//ar->v2d.keepzoom = (V2D_KEEPASPECT|V2D_LIMITZOOM);
@@ -311,6 +343,219 @@ static void recent_files_menu_register(void)
 	WM_menutype_add(mt);
 }
 
+
+#define IMASEL_BUTTONS_HEIGHT (UI_UNIT_Y * 2)
+#define IMASEL_BUTTONS_MARGIN (UI_UNIT_Y / 6)
+
+//
+//static void ribbon_panel_draw(const struct bContext *C, struct Panel *pt) {
+//
+//}
+//
+//static void ribbon_panel_register(ARegionType *art)
+//{
+//	PanelType *pt;
+//
+//	pt = MEM_callocN(sizeof(PanelType), "spacetype file system directories");
+//	strcpy(pt->idname, "FILE_PT_system");
+//	strcpy(pt->label, N_("System"));
+//	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
+//	pt->draw = ribbon_panel_draw;
+//	BLI_addtail(&art->paneltypes, pt);
+//}
+
+
+/* Note: This function uses pixelspace (0, 0, winx, winy), not view2d.
+* The controls are laid out as follows:
+*
+* -------------------------------------------
+* | Directory input               | execute |
+* -------------------------------------------
+* | Filename input        | + | - | cancel  |
+* -------------------------------------------
+*
+* The input widgets will stretch to fill any excess space.
+* When there isn't enough space for all controls to be shown, they are
+* hidden in this order: x/-, execute/cancel, input widgets.
+*/
+static void info_draw_ribbon_buttons(const bContext *C, ARegion *ar)
+{
+	/* Button layout. */
+	const int max_x = ar->winx - 10;
+	const int line1_y = ar->winy - (IMASEL_BUTTONS_HEIGHT / 2 + IMASEL_BUTTONS_MARGIN);
+	const int line2_y = line1_y - (IMASEL_BUTTONS_HEIGHT / 2 + IMASEL_BUTTONS_MARGIN);
+	const int input_minw = 20;
+	const int btn_h = UI_UNIT_Y;
+	const int btn_fn_w = UI_UNIT_X;
+	const int btn_minw = 80;
+	const int btn_margin = 20;
+	const int separator = 4;
+
+	/* Additional locals. */
+	char uiblockstr[32];
+	int loadbutton;
+	int fnumbuttons;
+	int min_x = 10;
+	int chan_offs = 0;
+	int available_w = max_x - min_x;
+	int line1_w = available_w;
+	int line2_w = available_w;
+
+	uiBut *but;
+	uiBlock *block;
+	ARegion *artmp;
+
+	/* Initialize UI block. */
+	BLI_snprintf(uiblockstr, sizeof(uiblockstr), "win %p", (void *)ar);
+	block = UI_block_begin(C, ar, uiblockstr, UI_EMBOSS);
+
+	/* exception to make space for collapsed region icon */
+	/*for (artmp = CTX_wm_area(C)->regionbase.first; artmp; artmp = artmp->next) {
+		if (artmp->regiontype == RGN_TYPE_CHANNELS && artmp->flag & RGN_FLAG_HIDDEN) {
+			chan_offs = 16;
+			min_x += chan_offs;
+			available_w -= chan_offs;
+		}
+	}*/
+
+	/* Is there enough space for the execute / cancel buttons? */
+
+
+	//const uiFontStyle *fstyle = UI_FSTYLE_WIDGET;
+	//loadbutton = UI_fontstyle_string_width(fstyle, "foooooo000") + btn_margin;
+	//CLAMP_MIN(loadbutton, btn_minw);
+	//if (available_w <= loadbutton + separator + input_minw) {
+	//	loadbutton = 0;
+	//}
+
+	//if (loadbutton) {
+	//	line1_w -= (loadbutton + separator);
+	//	line2_w = line1_w;
+	//}
+
+	///* Is there enough space for file number increment/decrement buttons? */
+	//fnumbuttons = 2 * btn_fn_w;
+	//if (!loadbutton || line2_w <= fnumbuttons + separator + input_minw) {
+	//	fnumbuttons = 0;
+	//}
+	//else {
+	//	line2_w -= (fnumbuttons + separator);
+	//}
+
+	/* Text input fields for directory and file. */
+	//if (available_w > 0) {
+	//	int overwrite_alert = file_draw_check_exists(sfile);
+	//	/* callbacks for operator check functions */
+	//	UI_block_func_set(block, file_draw_check_cb, NULL, NULL);
+
+	//	but = uiDefBut(block, UI_BTYPE_TEXT, -1, "",
+	//		min_x, line1_y, line1_w - chan_offs, btn_h,
+	//		params->dir, 0.0, (float)FILE_MAX, 0, 0,
+	//		TIP_("File path"));
+	//	UI_but_func_complete_set(but, autocomplete_directory, NULL);
+	//	UI_but_flag_enable(but, UI_BUT_NO_UTF8);
+	//	UI_but_flag_disable(but, UI_BUT_UNDO);
+	//	UI_but_funcN_set(but, file_directory_enter_handle, NULL, but);
+
+	//	/* TODO, directory editing is non-functional while a library is loaded
+	//	* until this is properly supported just disable it. */
+	//	if (sfile->files && filelist_lib(sfile->files))
+	//		UI_but_flag_enable(but, UI_BUT_DISABLED);
+
+	//	if ((params->flag & FILE_DIRSEL_ONLY) == 0) {
+	//		but = uiDefBut(block, UI_BTYPE_TEXT, -1, "",
+	//			min_x, line2_y, line2_w - chan_offs, btn_h,
+	//			params->file, 0.0, (float)FILE_MAXFILE, 0, 0,
+	//			TIP_(overwrite_alert ? N_("File name, overwrite existing") : N_("File name")));
+	//		UI_but_func_complete_set(but, autocomplete_file, NULL);
+	//		UI_but_flag_enable(but, UI_BUT_NO_UTF8);
+	//		UI_but_flag_disable(but, UI_BUT_UNDO);
+	//		/* silly workaround calling NFunc to ensure this does not get called
+	//		* immediate ui_apply_but_func but only after button deactivates */
+	//		UI_but_funcN_set(but, file_filename_enter_handle, NULL, but);
+
+	//		/* check if this overrides a file and if the operator option is used */
+	//		if (overwrite_alert) {
+	//			UI_but_flag_enable(but, UI_BUT_REDALERT);
+	//		}
+	//	}
+
+	//	/* clear func */
+	//	UI_block_func_set(block, NULL, NULL, NULL);
+	//}
+
+	/* Filename number increment / decrement buttons. */
+	//if (fnumbuttons && (params->flag & FILE_DIRSEL_ONLY) == 0) {
+		//UI_block_align_begin(block);
+		but = uiDefIconButO(block, UI_BTYPE_BUT, "INFO_OT_select_pick", 0, ICON_ZOOMOUT,
+			10, 10,
+			70, 30,
+			TIP_("Decrement the filename number"));
+		RNA_int_set(UI_but_operator_ptr_get(but), "increment", -1);
+
+		but = uiDefIconButO(block, UI_BTYPE_BUT, "INFO_OT_select_pick", 0, ICON_ZOOMIN,
+			80, 10,
+			70, 30,
+			TIP_("Increment the filename number"));
+		RNA_int_set(UI_but_operator_ptr_get(but), "increment", 1);
+		//UI_block_align_end(block);
+	//}
+
+	/* Execute / cancel buttons. */
+	//if (loadbutton) {
+	//	/* params->title is already translated! */
+	//	uiDefButO(block, UI_BTYPE_BUT, "FILE_OT_execute", WM_OP_EXEC_REGION_WIN, params->title,
+	//		max_x - loadbutton, line1_y, loadbutton, btn_h, "");
+	//	uiDefButO(block, UI_BTYPE_BUT, "FILE_OT_cancel", WM_OP_EXEC_REGION_WIN, IFACE_("Cancel"),
+	//		max_x - loadbutton, line2_y, loadbutton, btn_h, "");
+	//}
+
+	UI_block_end(C, block);
+	UI_block_draw(C, block);
+}
+
+
+static void info_ribbon_draw(const bContext *C, ARegion *ar)
+{
+	float col[3];
+	/* clear */
+	UI_GetThemeColor3fv(TH_BACK, col);
+	glClearColor(col[0], col[1], col[2], 0.0);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	/* scrolling here is just annoying, disable it */
+	ar->v2d.cur.ymax = BLI_rctf_size_y(&ar->v2d.cur);
+	ar->v2d.cur.ymin = 0;
+
+	/* set view2d view matrix for scrolling (without scrollers) */
+	UI_view2d_view_ortho(&ar->v2d);
+
+
+
+
+	info_draw_ribbon_buttons(C, ar);
+
+
+
+	/* Boilerplate */
+	UI_view2d_view_restore(C);
+}
+
+
+static void info_ribbon_area_init(wmWindowManager *wm, ARegion *ar) {
+	wmKeyMap *keymap;
+
+	/* force it on init, for old files, until it becomes config */
+	ar->v2d.scroll = (V2D_SCROLL_RIGHT);
+
+	UI_view2d_region_reinit(&ar->v2d, V2D_COMMONVIEW_CUSTOM, ar->winx, ar->winy);
+
+	/* own keymap */
+	keymap = WM_keymap_find(wm->defaultconf, "Info", SPACE_INFO, 0);
+	WM_event_add_keymap_handler(&ar->handlers, keymap);
+}
+
+
 /* only called once, from space/spacetypes.c */
 void ED_spacetype_info(void)
 {
@@ -328,7 +573,7 @@ void ED_spacetype_info(void)
 	st->keymap = info_keymap;
 	
 	/* regions: main window */
-	art = MEM_callocN(sizeof(ARegionType), "spacetype info region");
+	/*art = MEM_callocN(sizeof(ARegionType), "spacetype info region");
 	art->regionid = RGN_TYPE_WINDOW;
 	art->keymapflag = ED_KEYMAP_UI | ED_KEYMAP_VIEW2D | ED_KEYMAP_FRAMES;
 
@@ -336,7 +581,7 @@ void ED_spacetype_info(void)
 	art->draw = info_main_area_draw;
 	art->listener = info_main_area_listener;
 
-	BLI_addhead(&st->regiontypes, art);
+	BLI_addhead(&st->regiontypes, art);*/
 	
 	/* regions: header */
 	art = MEM_callocN(sizeof(ARegionType), "spacetype info region");
@@ -349,7 +594,39 @@ void ED_spacetype_info(void)
 	art->draw = info_header_area_draw;
 	
 	BLI_addhead(&st->regiontypes, art);
+
+
+
+
+
+	/* Regions: ribbon */
+	art = MEM_callocN(sizeof(ARegionType), "spacetype file region");
+	art->regionid = RGN_TYPE_WINDOW;		// RGN_TYPE_UI;
+	art->prefsizey = 90;
+	//art->keymapflag = ED_KEYMAP_UI;
+	//art->listener = file_ui_area_listener;
+	art->init = info_ribbon_area_init;
+	art->draw = info_ribbon_draw;
+	BLI_addhead(&st->regiontypes, art);
+	art->minsizey = 80;
+	art->minsizex = 1000;
+	//art->
+
+	//ribbon_panel_register(art);
 	
+
+	/*PanelType *pt;
+
+	pt = MEM_callocN(sizeof(PanelType), "spacetype file system directories");
+	strcpy(pt->idname, "FILE_PT_system");
+	strcpy(pt->label, N_("System"));
+	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
+	pt->draw = file_panel_system;
+	BLI_addhead(&art->paneltypes, art);*/
+
+
+
+
 	recent_files_menu_register();
 
 	BKE_spacetype_register(st);
