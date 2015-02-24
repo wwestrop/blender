@@ -198,7 +198,7 @@ void file_draw_buttons(const bContext *C, ARegion *ar)
 	}
 	
 	/* Filename number increment / decrement buttons. */
-	if (fnumbuttons && (params->flag & FILE_DIRSEL_ONLY) == 0) {
+	/*if (fnumbuttons && (params->flag & FILE_DIRSEL_ONLY) == 0) {
 		UI_block_align_begin(block);
 		but = uiDefIconButO(block, UI_BTYPE_BUT, "FILE_OT_filenum", 0, ICON_ZOOMOUT,
 		                    min_x + line2_w + separator - chan_offs, line2_y,
@@ -212,8 +212,21 @@ void file_draw_buttons(const bContext *C, ARegion *ar)
 		                    TIP_("Increment the filename number"));
 		RNA_int_set(UI_but_operator_ptr_get(but), "increment", 1);
 		UI_block_align_end(block);
-	}
+	}*/
 	
+
+
+
+
+
+	// My own button
+	but = uiDefButO(block, UI_BTYPE_BUT, "INFO_OT_dummyOp", WM_OP_INVOKE_DEFAULT, "title", min_x + line2_w + separator - chan_offs, line2_y, btn_fn_w, btn_h, "tipppppy");
+
+
+
+
+
+
 	/* Execute / cancel buttons. */
 	if (loadbutton) {
 		/* params->title is already translated! */
@@ -226,6 +239,8 @@ void file_draw_buttons(const bContext *C, ARegion *ar)
 	UI_block_end(C, block);
 	UI_block_draw(C, block);
 }
+
+
 
 
 static void draw_tile(int sx, int sy, int width, int height, int colorid, int shade)
@@ -273,6 +288,8 @@ static int get_file_icon(struct direntry *file)
 	else
 		return ICON_FILE_BLANK;
 }
+
+
 
 static void file_draw_icon(uiBlock *block, char *path, int sx, int sy, int icon, int width, int height, bool drag)
 {

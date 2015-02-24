@@ -208,6 +208,54 @@ static void info_main_area_draw(const bContext *C, ARegion *ar)
 	UI_view2d_scrollers_free(scrollers);
 }
 
+
+static int fooButPoll(bContext *C, wmOperator *ot)
+{
+	//SpaceInfo *sinfo = CTX_wm_space_info(C);
+	//ReportList *reports = CTX_wm_reports(C);
+	//int report_mask = info_report_mask(sinfo);
+
+	//Report *report;
+
+	//DynStr *buf_dyn = BLI_dynstr_new();
+	//char *buf_str;
+
+	//for (report = reports->list.first; report; report = report->next) {
+	//	if ((report->type & report_mask) && (report->flag & SELECT)) {
+	//		BLI_dynstr_append(buf_dyn, report->message);
+	//		BLI_dynstr_append(buf_dyn, "\n");
+	//	}
+	//}
+
+	//buf_str = BLI_dynstr_get_cstring(buf_dyn);
+	//BLI_dynstr_free(buf_dyn);
+
+	//WM_clipboard_text_set(buf_str, 0);
+
+	//MEM_freeN(buf_str);
+	//return OPERATOR_FINISHED;
+
+	return OPERATOR_RUNNING_MODAL;
+}
+
+static void fooButHandler(bContext *C, void *arg1, void *arg2) {
+	printf("gkgklf");
+}
+
+
+static void INFO_OT_dummyOp(wmOperatorType *ot)
+{
+	/* identifiers */
+	ot->name = "Foo the bar";
+	ot->description = "DDDDD";
+	ot->idname = "INFO_OT_dummyOp";
+
+	/* api callbacks */
+	ot->poll = fooButPoll;
+	ot->exec = fooButHandler;
+}
+
+
 static void info_operatortypes(void)
 {
 	WM_operatortype_append(FILE_OT_autopack_toggle);
@@ -223,6 +271,7 @@ static void info_operatortypes(void)
 	WM_operatortype_append(FILE_OT_find_missing_files);
 	WM_operatortype_append(INFO_OT_reports_display_update);
 
+
 	/* info_report.c */
 	WM_operatortype_append(INFO_OT_select_pick);
 	WM_operatortype_append(INFO_OT_select_all_toggle);
@@ -231,6 +280,8 @@ static void info_operatortypes(void)
 	WM_operatortype_append(INFO_OT_report_replay);
 	WM_operatortype_append(INFO_OT_report_delete);
 	WM_operatortype_append(INFO_OT_report_copy);
+
+	WM_operatortype_append(INFO_OT_dummyOp);
 }
 
 static void info_keymap(struct wmKeyConfig *keyconf)
@@ -347,6 +398,7 @@ static void recent_files_menu_register(void)
 #define IMASEL_BUTTONS_HEIGHT (UI_UNIT_Y * 2)
 #define IMASEL_BUTTONS_MARGIN (UI_UNIT_Y / 6)
 
+typedef struct uiBlock uiBlock;
 //
 //static void ribbon_panel_draw(const struct bContext *C, struct Panel *pt) {
 //
@@ -365,6 +417,31 @@ static void recent_files_menu_register(void)
 //}
 
 
+static void block_func_draw_check(bContext *C, void *UNUSED(arg1), void *UNUSED(arg2))
+{
+	//SpaceFile *sfile = CTX_wm_space_file(C);
+	SpaceInfo *ssss = CTX_wm_space_info(C);
+	//wmOperator *op = sfile->op;
+	//if (op) { /* fail on reload */
+	//	if (op->type->check) {
+	//		char filepath[FILE_MAX];
+	//		file_sfile_to_operator(op, sfile, filepath);
+
+	//		/* redraw */
+	//		if (op->type->check(C, op)) {
+	//			file_operator_to_sfile(sfile, op);
+
+	//			/* redraw, else the changed settings wont get updated */
+	//			ED_area_tag_redraw(CTX_wm_area(C));
+	//		}
+	//	}
+	//}
+}
+
+
+
+
+
 /* Note: This function uses pixelspace (0, 0, winx, winy), not view2d.
 * The controls are laid out as follows:
 *
@@ -380,16 +457,25 @@ static void recent_files_menu_register(void)
 */
 static void info_draw_ribbon_buttons(const bContext *C, ARegion *ar)
 {
+
+
+	ED_region_panels(C, ar, 1, CTX_data_mode_string(C), -1);
+
+	return;
+
+
+
+
 	/* Button layout. */
-	const int max_x = ar->winx - 10;
-	const int line1_y = ar->winy - (IMASEL_BUTTONS_HEIGHT / 2 + IMASEL_BUTTONS_MARGIN);
-	const int line2_y = line1_y - (IMASEL_BUTTONS_HEIGHT / 2 + IMASEL_BUTTONS_MARGIN);
-	const int input_minw = 20;
+	//const int max_x = ar->winx - 10;
+	//const int line1_y = ar->winy - (IMASEL_BUTTONS_HEIGHT / 2 + IMASEL_BUTTONS_MARGIN);
+	//const int line2_y = line1_y - (IMASEL_BUTTONS_HEIGHT / 2 + IMASEL_BUTTONS_MARGIN);
+	//const int input_minw = 20;
 	const int btn_h = UI_UNIT_Y;
 	const int btn_fn_w = UI_UNIT_X;
 	const int btn_minw = 80;
-	const int btn_margin = 20;
-	const int separator = 4;
+	//const int btn_margin = 20;
+	//const int separator = 4;
 
 	/* Additional locals. */
 	char uiblockstr[32];
@@ -397,9 +483,9 @@ static void info_draw_ribbon_buttons(const bContext *C, ARegion *ar)
 	int fnumbuttons;
 	int min_x = 10;
 	int chan_offs = 0;
-	int available_w = max_x - min_x;
-	int line1_w = available_w;
-	int line2_w = available_w;
+	//int available_w = max_x - min_x;
+	//int line1_w = available_w;
+	//int line2_w = available_w;
 
 	uiBut *but;
 	uiBlock *block;
@@ -408,6 +494,9 @@ static void info_draw_ribbon_buttons(const bContext *C, ARegion *ar)
 	/* Initialize UI block. */
 	BLI_snprintf(uiblockstr, sizeof(uiblockstr), "win %p", (void *)ar);
 	block = UI_block_begin(C, ar, uiblockstr, UI_EMBOSS);
+	
+	
+	block->iHateYouAll = 42;
 
 	/* exception to make space for collapsed region icon */
 	/*for (artmp = CTX_wm_area(C)->regionbase.first; artmp; artmp = artmp->next) {
@@ -446,7 +535,7 @@ static void info_draw_ribbon_buttons(const bContext *C, ARegion *ar)
 	//if (available_w > 0) {
 	//	int overwrite_alert = file_draw_check_exists(sfile);
 	//	/* callbacks for operator check functions */
-	//	UI_block_func_set(block, file_draw_check_cb, NULL, NULL);
+	UI_block_func_set(block, block_func_draw_check, NULL, NULL);
 
 	//	but = uiDefBut(block, UI_BTYPE_TEXT, -1, "",
 	//		min_x, line1_y, line1_w - chan_offs, btn_h,
@@ -480,25 +569,67 @@ static void info_draw_ribbon_buttons(const bContext *C, ARegion *ar)
 	//		}
 	//	}
 
+
+
+
+	//UI_panel_category_draw_all
+
+
+
+
 	//	/* clear func */
-	//	UI_block_func_set(block, NULL, NULL, NULL);
+	UI_block_func_set(block, NULL, NULL, NULL);
+
 	//}
+
+
+
+	UI_block_align_begin(block);
+
+
+	/*but = uiDefIconBut(block, UI_BTYPE_BUT, 5, ICON_OOPS, 20, 100, 300, 40, "don't know what this is supposed to be a pointer to.....", 30, 50, 33, 33, "my info tooltip");
+	UI_but_func_set(but, fooButHandler, NULL, NULL);
+	ui_but_update(but);*/
+
+
+
+	//but = uiDefButO(block, UI_BTYPE_BUT, "FILE_OT_execute", WM_OP_INVOKE_DEFAULT, "title", 50, 50, 500, 40, "tipppppy");
+	but = uiDefButO(block, UI_BTYPE_BUT, "INFO_OT_dummyOp", WM_OP_INVOKE_DEFAULT, "title", 50, 50, 500, 40, "tipppppy");
+	UI_but_func_set(but, fooButHandler, NULL, NULL);
+	UI_but_funcN_set(but, fooButHandler, NULL, NULL);
+	UI_but_func_complete_set(but, fooButHandler, NULL);
+	UI_but_flag_enable(but, UI_BUT_UNDO);
+	UI_but_flag_enable(but, UI_BUT_NO_UTF8);
+	
+	// UI_but_func_complete_set(but, autocomplete_directory, NULL);
+	//	UI_but_flag_enable(but, UI_BUT_NO_UTF8);
+	//	UI_but_flag_disable(but, UI_BUT_UNDO);
+	//	UI_but_funcN_set(but, file_directory_enter_handle, NULL, but);
+	
+
+
+	//
 
 	/* Filename number increment / decrement buttons. */
 	//if (fnumbuttons && (params->flag & FILE_DIRSEL_ONLY) == 0) {
-		//UI_block_align_begin(block);
-		but = uiDefIconButO(block, UI_BTYPE_BUT, "INFO_OT_select_pick", 0, ICON_ZOOMOUT,
+		//
+		but = uiDefIconButO(block, UI_BTYPE_BUT, "INFO_OT_dummyOp", 0, ICON_ZOOMOUT,
 			10, 10,
 			70, 30,
 			TIP_("Decrement the filename number"));
 		RNA_int_set(UI_but_operator_ptr_get(but), "increment", -1);
+		//UI_but_func_set(but, fooButHandler, NULL, NULL);
 
-		but = uiDefIconButO(block, UI_BTYPE_BUT, "INFO_OT_select_pick", 0, ICON_ZOOMIN,
+		but = uiDefIconButO(block, UI_BTYPE_BUT, "INFO_OT_dummyOp", 0, ICON_ZOOMIN,
 			80, 10,
 			70, 30,
 			TIP_("Increment the filename number"));
 		RNA_int_set(UI_but_operator_ptr_get(but), "increment", 1);
-		//UI_block_align_end(block);
+	
+		
+		UI_block_align_end(block);
+
+		//BLI_addhead(&ar->uiblocks, block);
 	//}
 
 	/* Execute / cancel buttons. */
@@ -542,7 +673,37 @@ static void info_ribbon_draw(const bContext *C, ARegion *ar)
 }
 
 
+
+
+
+
+/** I DON'T EVEN KNOW WHAT THIS DOES!!!!!! I added it as a listener for the region, hoping that makes my buttons get picked up!!!!!!!!!!!!! */
+static void file_ui_area_listener(bScreen *UNUSED(sc), ScrArea *UNUSED(sa), ARegion *ar, wmNotifier *wmn)
+{
+	/* context changes */
+	switch (wmn->category) {
+	case NC_SPACE:
+		switch (wmn->data) {
+		case ND_SPACE_FILE_LIST:
+			ED_region_tag_redraw(ar);
+			break;
+		}
+		break;
+	}
+}
+
+
+
+
+
+
+
+
+
 static void info_ribbon_area_init(wmWindowManager *wm, ARegion *ar) {
+
+	ED_region_panels_init(wm, ar);
+
 	wmKeyMap *keymap;
 
 	/* force it on init, for old files, until it becomes config */
@@ -554,6 +715,43 @@ static void info_ribbon_area_init(wmWindowManager *wm, ARegion *ar) {
 	keymap = WM_keymap_find(wm->defaultconf, "Info", SPACE_INFO, 0);
 	WM_event_add_keymap_handler(&ar->handlers, keymap);
 }
+
+
+
+
+
+
+
+
+
+/* tabbed panel stuff */
+static void view3d_buttons_area_listener(bScreen *UNUSED(sc), ScrArea *UNUSED(sa), ARegion *ar, wmNotifier *wmn) {
+
+}
+
+static void view3d_tools_area_init(wmWindowManager *wm, ARegion *ar)
+{
+	wmKeyMap *keymap;
+
+	ED_region_panels_init(wm, ar);
+
+	keymap = WM_keymap_find(wm->defaultconf, "3D View Generic", SPACE_VIEW3D, 0);
+	WM_event_add_keymap_handler(&ar->handlers, keymap);
+}
+
+static void view3d_tools_area_draw(const bContext *C, ARegion *ar)
+{
+	ED_region_panels(C, ar, 1, CTX_data_mode_string(C), -1);
+}
+
+
+
+
+
+
+
+
+
 
 
 /* only called once, from space/spacetypes.c */
@@ -599,18 +797,68 @@ void ED_spacetype_info(void)
 
 
 
+
+
+
+
+
+
+
+
+	/* tabbed toolbar (that's what I hope) */
+	art = MEM_callocN(sizeof(ARegionType), "spacetype view3d tools region");
+	art->regionid = RGN_TYPE_TOOLS;
+	art->prefsizex = 160; /* XXX */
+	art->prefsizey = 50; /* XXX */
+	art->keymapflag = ED_KEYMAP_UI | ED_KEYMAP_FRAMES;
+	art->listener = view3d_buttons_area_listener;
+	art->init = view3d_tools_area_init;
+	art->draw = view3d_tools_area_draw;
+	BLI_addhead(&st->regiontypes, art);
+
+
+
+
+
+
+
+
+
+
+
+
+
 	/* Regions: ribbon */
+	//art = MEM_callocN(sizeof(ARegionType), "spacetype file region");
+	//art->regionid = RGN_TYPE_WINDOW;		// RGN_TYPE_UI;
+	//art->prefsizey = 90;
+	////art->keymapflag = ED_KEYMAP_UI;
+	//art->listener = file_ui_area_listener;
+	//art->init = info_ribbon_area_init;
+	//art->draw = info_ribbon_draw;
+	//BLI_addhead(&st->regiontypes, art);
+	//art->minsizey = 80;
+	//art->minsizex = 1000;
+
+
+
+
+
+
 	art = MEM_callocN(sizeof(ARegionType), "spacetype file region");
-	art->regionid = RGN_TYPE_WINDOW;		// RGN_TYPE_UI;
+	//art->regionid = RGN_TYPE_UI;
+	//art->regionid = RGN_TYPE_TOOLS;
+	art->regionid = RGN_TYPE_WINDOW;
+	//art->regi
 	art->prefsizey = 90;
 	//art->keymapflag = ED_KEYMAP_UI;
-	//art->listener = file_ui_area_listener;
+	art->listener = file_ui_area_listener;
 	art->init = info_ribbon_area_init;
 	art->draw = info_ribbon_draw;
 	BLI_addhead(&st->regiontypes, art);
 	art->minsizey = 80;
 	art->minsizex = 1000;
-	//art->
+
 
 	//ribbon_panel_register(art);
 	

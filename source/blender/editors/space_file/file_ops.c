@@ -1000,6 +1000,45 @@ int file_exec(bContext *C, wmOperator *exec_op)
 	return OPERATOR_FINISHED;
 }
 
+
+
+
+
+
+
+
+
+
+int fooButPoll(bContext *C, wmOperator *ot)
+{
+	return OPERATOR_RUNNING_MODAL;
+}
+
+void fooButHandler(bContext *C, void *arg1, void *arg2) 
+{
+	printf("gkgklf");
+}
+
+
+void INFO_OT_dummyOp(/*struct*/ wmOperatorType *ot)
+{
+	/* identifiers */
+	ot->name = "Foo the bar";
+	ot->description = "DDDDD";
+	ot->idname = "INFO_OT_dummyOp";
+
+	/* api callbacks */
+	ot->poll = fooButPoll;
+	ot->exec = fooButHandler;
+}
+
+
+
+
+
+
+
+
 void FILE_OT_execute(struct wmOperatorType *ot)
 {
 	PropertyRNA *prop;
