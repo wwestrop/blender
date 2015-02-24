@@ -2682,6 +2682,11 @@ static void write_screens(WriteData *wd, ListBase *scrbase)
 					for (bgpic= v3d->bgpicbase.first; bgpic; bgpic= bgpic->next)
 						writestruct(wd, DATA, "BGpic", 1, bgpic);
 					if (v3d->localvd) writestruct(wd, DATA, "View3D", 1, v3d->localvd);
+
+					if (v3d->fx_settings.ssao)
+						writestruct(wd, DATA, "GPUSSAOSettings", 1, v3d->fx_settings.ssao);
+					if (v3d->fx_settings.dof)
+						writestruct(wd, DATA, "GPUDOFSettings", 1, v3d->fx_settings.dof);
 				}
 				else if (sl->spacetype==SPACE_IPO) {
 					SpaceIpo *sipo= (SpaceIpo *)sl;
@@ -2768,6 +2773,9 @@ static void write_screens(WriteData *wd, ListBase *scrbase)
 				}
 				else if (sl->spacetype==SPACE_CLIP) {
 					writestruct(wd, DATA, "SpaceClip", 1, sl);
+				}
+				else if (sl->spacetype == SPACE_INFO) {
+					writestruct(wd, DATA, "SpaceInfo", 1, sl);
 				}
 
 				sl= sl->next;

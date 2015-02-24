@@ -79,6 +79,8 @@
 #include "BKE_tracking.h"
 #include "BKE_movieclip.h"
 
+#include "BIK_api.h"
+
 #ifdef WITH_PYTHON
 #  include "BPY_extern.h"
 #endif
@@ -4410,8 +4412,24 @@ bool BKE_constraint_remove(ListBase *list, bConstraint *con)
 		BLI_freelinkN(list, con);
 		return true;
 	}
-	else
+	else {
 		return false;
+	}
+}
+
+bool BKE_constraint_remove_ex(ListBase *list, Object *ob, bConstraint *con, bool clear_dep)
+{
+	const short type = con->type;
+	if (BKE_constraint_remove(list, con)) {
+		/* ITASC needs to be rebuilt once a constraint is removed [#26920] */
+		if (clear_dep && ELEM(type, CONSTRAINT_TYPE_KINEMATIC, CONSTRAINT_TYPE_SPLINEIK)) {
+			BIK_clear_data(ob->pose);
+		}
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 /* ......... */

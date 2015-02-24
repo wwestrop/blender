@@ -81,7 +81,6 @@ class FILEBROWSER_HT_header(Header):
             row.prop(params, "filter_search", text="", icon='VIEWZOOM')
 
 
-
 class FILEBROWSER_UL_dir(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         direntry = item
@@ -123,8 +122,7 @@ class FILEBROWSER_PT_system_folders(Panel):
         if space.system_folders:
             row = layout.row()
             row.template_list("FILEBROWSER_UL_dir", "system_folders", space, "system_folders",
-                              space, "system_folders_active", item_dyntip_propname="path", rows=1, maxrows=6)
-
+                              space, "system_folders_active", item_dyntip_propname="path", rows=1, maxrows=10)
 
 class FILEBROWSER_PT_system_bookmarks(Panel):
     bl_space_type = 'FILE_BROWSER'
@@ -143,7 +141,7 @@ class FILEBROWSER_PT_system_bookmarks(Panel):
         if space.system_bookmarks:
             row = layout.row()
             row.template_list("FILEBROWSER_UL_dir", "system_bookmarks", space, "system_bookmarks",
-                              space, "system_bookmarks_active", item_dyntip_propname="path", rows=1, maxrows=6)
+                              space, "system_bookmarks_active", item_dyntip_propname="path", rows=1, maxrows=10)
 
 
 class FILEBROWSER_MT_bookmarks_specials(Menu):
@@ -173,7 +171,7 @@ class FILEBROWSER_PT_bookmarks(Panel):
             num_rows = len(space.bookmarks)
             row.template_list("FILEBROWSER_UL_dir", "bookmarks", space, "bookmarks",
                               space, "bookmarks_active", item_dyntip_propname="path",
-                              rows=(2 if num_rows < 2 else 4), maxrows=6)
+                              rows=(2 if num_rows < 2 else 4), maxrows=10)
 
             col = row.column(align=True)
             col.operator("file.bookmark_add", icon='ZOOMIN', text="")
@@ -205,7 +203,7 @@ class FILEBROWSER_PT_recent_folders(Panel):
         if space.recent_folders:
             row = layout.row()
             row.template_list("FILEBROWSER_UL_dir", "recent_folders", space, "recent_folders",
-                              space, "recent_folders_active", item_dyntip_propname="path", rows=1, maxrows=6)
+                              space, "recent_folders_active", item_dyntip_propname="path", rows=1, maxrows=10)
 
             col = row.column(align=True)
             col.operator("file.reset_recent", icon='X', text="")

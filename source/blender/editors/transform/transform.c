@@ -44,6 +44,7 @@
 #include "DNA_movieclip_types.h"
 #include "DNA_scene_types.h"  /* PET modes */
 
+#include "BLI_alloca.h"
 #include "BLI_utildefines.h"
 #include "BLI_math.h"
 #include "BLI_rect.h"
@@ -138,6 +139,9 @@ static void applyCurveShrinkFatten(TransInfo *t, const int mval[2]);
 
 static void initMaskShrinkFatten(TransInfo *t);
 static void applyMaskShrinkFatten(TransInfo *t, const int mval[2]);
+
+static void initGPShrinkFatten(TransInfo *t);
+static void applyGPShrinkFatten(TransInfo *t, const int mval[2]);
 
 static void initTrackball(TransInfo *t);
 static void applyTrackball(TransInfo *t, const int mval[2]);
@@ -1970,8 +1974,8 @@ void saveTransform(bContext *C, TransInfo *t, wmOperator *op)
 		}
 	}
 	
-	if (RNA_struct_find_property(op->ptr, "proportional")) {
-		RNA_enum_set(op->ptr, "proportional", proportional);
+	if ((prop = RNA_struct_find_property(op->ptr, "proportional"))) {
+		RNA_property_enum_set(op->ptr, prop, proportional);
 		RNA_enum_set(op->ptr, "proportional_edit_falloff", t->prop_mode);
 		RNA_float_set(op->ptr, "proportional_size", t->prop_size);
 	}
@@ -2164,6 +2168,9 @@ bool initTransform(bContext *C, TransInfo *t, wmOperator *op, const wmEvent *eve
 			break;
 		case TFM_MASK_SHRINKFATTEN:
 			initMaskShrinkFatten(t);
+			break;
+		case TFM_GPENCIL_SHRINKFATTEN:
+			initGPShrinkFatten(t);
 			break;
 		case TFM_TRACKBALL:
 			initTrackball(t);
@@ -4669,6 +4676,83 @@ static void applyMaskShrinkFatten(TransInfo *t, const int UNUSED(mval[2]))
 
 
 /* -------------------------------------------------------------------- */
+/* Transform (GPencil Shrink/Fatten) */
+
+/** \name Transform GPencil Strokes Shrink/Fatten
+ * \{ */
+
+static void initGPShrinkFatten(TransInfo *t)
+{
+	t->mode = TFM_GPENCIL_SHRINKFATTEN;
+	t->transform = applyGPShrinkFatten;
+
+	initMouseInputMode(t, &t->mouse, INPUT_SPRING);
+
+	t->idx_max = 0;
+	t->num.idx_max = 0;
+	t->snap[0] = 0.0f;
+	t->snap[1] = 0.1f;
+	t->snap[2] = t->snap[1] * 0.1f;
+
+	copy_v3_fl(t->num.val_inc, t->snap[1]);
+	t->num.unit_sys = t->scene->unit.system;
+	t->num.unit_type[0] = B_UNIT_NONE;
+
+	t->flag |= T_NO_ZERO;
+#ifdef USE_NUM_NO_ZERO
+	t->num.val_flag[0] |= NUM_NO_ZERO;
+#endif
+
+	t->flag |= T_NO_CONSTRAINT;
+}
+
+static void applyGPShrinkFatten(TransInfo *t, const int UNUSED(mval[2]))
+{
+	TransData *td = t->data;
+	float ratio;
+	int i;
+	char str[MAX_INFO_LEN];
+
+	ratio = t->values[0];
+
+	snapGridIncrement(t, &ratio);
+
+	applyNumInput(&t->num, &ratio);
+
+	/* header print for NumInput */
+	if (hasNumInput(&t->num)) {
+		char c[NUM_STR_REP_LEN];
+
+		outputNumInput(&(t->num), c, &t->scene->unit);
+		BLI_snprintf(str, MAX_INFO_LEN, IFACE_("Shrink/Fatten: %s"), c);
+	}
+	else {
+		BLI_snprintf(str, MAX_INFO_LEN, IFACE_("Shrink/Fatten: %3f"), ratio);
+	}
+
+	for (i = 0; i < t->total; i++, td++) {
+		if (td->flag & TD_NOACTION)
+			break;
+
+		if (td->flag & TD_SKIP)
+			continue;
+
+		if (td->val) {
+			*td->val = td->ival * ratio;
+			/* apply PET */
+			*td->val = (*td->val * td->factor) + ((1.0f - td->factor) * td->ival);
+			if (*td->val <= 0.0f) *td->val = 0.001f;
+		}
+	}
+
+	recalcData(t);
+
+	ED_area_headerprint(t->sa, str);
+}
+/** \} */
+
+
+/* -------------------------------------------------------------------- */
 /* Transform (Push/Pull) */
 
 /** \name Transform Push/Pull
@@ -5157,6 +5241,43 @@ static void slide_origdata_init_data(
 	}
 }
 
+static void slide_origdata_create_data_vert(
+        BMesh *bm, SlideOrigData *sod,
+        TransDataGenericSlideVert *sv)
+{
+	BMIter liter;
+	int j, l_num;
+	float *loop_weights;
+
+	/* copy face data */
+	// BM_ITER_ELEM (l, &liter, sv->v, BM_LOOPS_OF_VERT) {
+	BM_iter_init(&liter, bm, BM_LOOPS_OF_VERT, sv->v);
+	l_num = liter.count;
+	loop_weights = BLI_array_alloca(loop_weights, l_num);
+	for (j = 0; j < l_num; j++) {
+		BMLoop *l = BM_iter_step(&liter);
+		if (!BLI_ghash_haskey(sod->origfaces, l->f)) {
+			BMFace *f_copy = BM_face_copy(sod->bm_origfaces, bm, l->f, true, true);
+			BLI_ghash_insert(sod->origfaces, l->f, f_copy);
+		}
+		loop_weights[j] = BM_loop_calc_face_angle(l);
+	}
+
+	/* store cd_loop_groups */
+	if (l_num != 0) {
+		sv->cd_loop_groups = BLI_memarena_alloc(sod->arena, sod->layer_math_map_num * sizeof(void *));
+		for (j = 0; j < sod->layer_math_map_num; j++) {
+			const int layer_nr = sod->layer_math_map[j];
+			sv->cd_loop_groups[j] = BM_vert_loop_groups_data_layer_create(bm, sv->v, layer_nr, loop_weights, sod->arena);
+		}
+	}
+	else {
+		sv->cd_loop_groups = NULL;
+	}
+
+	BLI_ghash_insert(sod->origverts, sv->v, sv);
+}
+
 static void slide_origdata_create_data(
         TransInfo *t, SlideOrigData *sod,
         TransDataGenericSlideVert *sv, unsigned int v_stride, unsigned int v_num)
@@ -5166,9 +5287,7 @@ static void slide_origdata_create_data(
 		BMesh *bm = em->bm;
 		unsigned int i;
 
-		const int *layer_math_map;
 		int layer_index_dst;
-		int layer_groups_array_size;
 		int j;
 
 		/* over alloc, only 'math' layers are indexed */
@@ -5180,30 +5299,71 @@ static void slide_origdata_create_data(
 			}
 		}
 		BLI_assert(layer_index_dst != 0);
-		layer_math_map = sod->layer_math_map;
-		layer_groups_array_size = layer_index_dst * sizeof(void *);
 		sod->layer_math_map_num = layer_index_dst;
 
 		sod->arena = BLI_memarena_new(BLI_MEMARENA_STD_BUFSIZE, __func__);
 
-		for (i = 0; i < v_num; i++, sv = (void *)(((char *)sv) + v_stride)) {
-			BMIter fiter;
-			BMFace *f;
+		sod->origverts = BLI_ghash_ptr_new_ex(__func__, v_num);
 
-			/* copy face data */
-			BM_ITER_ELEM (f, &fiter, sv->v, BM_FACES_OF_VERT) {
-				if (!BLI_ghash_haskey(sod->origfaces, f)) {
-					BMFace *f_copy = BM_face_copy(sod->bm_origfaces, bm, f, true, true);
-					BLI_ghash_insert(sod->origfaces, f, f_copy);
-				}
-			}
+		for (i = 0; i < v_num; i++, sv = POINTER_OFFSET(sv, v_stride)) {
+			slide_origdata_create_data_vert(bm, sod, sv);
+		}
+	}
+}
 
-			/* store cd_loop_groups */
-			sv->cd_loop_groups = BLI_memarena_alloc(sod->arena, layer_groups_array_size);
-			for (j = 0; j < layer_index_dst; j++) {
-				const int layer_nr = layer_math_map[j];
-				sv->cd_loop_groups[j] = BM_vert_loop_groups_data_layer_create(bm, sv->v, layer_nr, sod->arena);
-			}
+/**
+ * If we're sliding the vert, return its original location, if not, the current location is good.
+ */
+static const float *slide_origdata_orig_vert_co(SlideOrigData *sod, BMVert *v)
+{
+	TransDataGenericSlideVert *sv = BLI_ghash_lookup(sod->origverts, v);
+	return sv ? sv->co_orig_3d : v->co;
+}
+
+static void slide_origdata_interp_data_vert(
+        SlideOrigData *sod, BMesh *bm, bool is_final,
+        TransDataGenericSlideVert *sv)
+{
+	BMIter liter;
+	int j, l_num;
+	float *loop_weights;
+	const bool do_loop_weight = (len_squared_v3v3(sv->v->co, sv->co_orig_3d) > FLT_EPSILON);
+
+	// BM_ITER_ELEM (l, &liter, sv->v, BM_LOOPS_OF_VERT) {
+	BM_iter_init(&liter, bm, BM_LOOPS_OF_VERT, sv->v);
+	l_num = liter.count;
+	loop_weights = do_loop_weight ? BLI_array_alloca(loop_weights, l_num) : NULL;
+	for (j = 0; j < l_num; j++) {
+		BMFace *f_copy;  /* the copy of 'f' */
+		BMLoop *l = BM_iter_step(&liter);
+
+		f_copy = BLI_ghash_lookup(sod->origfaces, l->f);
+
+		/* only loop data, no vertex data since that contains shape keys,
+		 * and we do not want to mess up other shape keys */
+		BM_loop_interp_from_face(bm, l, f_copy, false, is_final);
+
+		/* make sure face-attributes are correct (e.g. MTexPoly) */
+		BM_elem_attrs_copy(sod->bm_origfaces, bm, f_copy, l->f);
+
+		/* weight the loop */
+		if (do_loop_weight) {
+			const float *v_prev = slide_origdata_orig_vert_co(sod, l->prev->v);
+			const float *v_next = slide_origdata_orig_vert_co(sod, l->next->v);
+			const float dist = dist_signed_squared_to_corner_v3v3v3(sv->v->co, v_prev, sv->co_orig_3d, v_next, f_copy->no);
+			const float eps = 0.00001f;
+			loop_weights[j] = (dist >= 0.0f) ? 1.0f : ((dist <= -eps) ? 0.0f : (1.0f + (dist / eps)));
+		}
+	}
+
+	if (do_loop_weight) {
+		for (j = 0; j < sod->layer_math_map_num; j++) {
+			 BM_vert_loop_groups_data_layer_merge_weights(bm, sv->cd_loop_groups[j], sod->layer_math_map[j], loop_weights);
+		}
+	}
+	else {
+		for (j = 0; j < sod->layer_math_map_num; j++) {
+			 BM_vert_loop_groups_data_layer_merge(bm, sv->cd_loop_groups[j], sod->layer_math_map[j]);
 		}
 	}
 }
@@ -5215,30 +5375,13 @@ static void slide_origdata_interp_data(
 {
 	if (sod->use_origfaces) {
 		BMEditMesh *em = BKE_editmesh_from_object(t->obedit);
+		BMesh *bm = em->bm;
 		unsigned int i;
 
-		const int *layer_math_map = sod->layer_math_map;
+		for (i = 0; i < v_num; i++, sv = POINTER_OFFSET(sv, v_stride)) {
 
-		for (i = 0; i < v_num; i++, sv = (void *)(((char *)sv) + v_stride)) {
-			BMIter fiter;
-			BMLoop *l;
-			int j;
-
-			BM_ITER_ELEM (l, &fiter, sv->v, BM_LOOPS_OF_VERT) {
-				BMFace *f_copy;  /* the copy of 'f' */
-
-				f_copy = BLI_ghash_lookup(sod->origfaces, l->f);
-
-				/* only loop data, no vertex data since that contains shape keys,
-				 * and we do not want to mess up other shape keys */
-				BM_loop_interp_from_face(em->bm, l, f_copy, false, is_final);
-
-				/* make sure face-attributes are correct (e.g. MTexPoly) */
-				BM_elem_attrs_copy(sod->bm_origfaces, em->bm, f_copy, l->f);
-			}
-
-			for (j = 0; j < sod->layer_math_map_num; j++) {
-				 BM_vert_loop_groups_data_layer_merge(em->bm, sv->cd_loop_groups[j], layer_math_map[j]);
+			if (sv->cd_loop_groups) {
+				slide_origdata_interp_data_vert(sod, bm, is_final, sv);
 			}
 		}
 	}
@@ -5256,6 +5399,11 @@ static void slide_origdata_free_date(
 		if (sod->origfaces) {
 			BLI_ghash_free(sod->origfaces, NULL, NULL);
 			sod->origfaces = NULL;
+		}
+
+		if (sod->origverts) {
+			BLI_ghash_free(sod->origverts, NULL, NULL);
+			sod->origverts = NULL;
 		}
 
 		if (sod->arena) {

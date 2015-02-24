@@ -323,6 +323,7 @@ class VIEW3D_PT_tools_meshedit(View3DPanel, Panel):
         col.menu("VIEW3D_MT_edit_mesh_extrude")
         col.operator("view3d.edit_mesh_extrude_move_normal", text="Extrude Region")
         col.operator("view3d.edit_mesh_extrude_individual_move", text="Extrude Individual")
+        col.operator("mesh.inset", text="Inset Faces")
         col.operator("mesh.edge_face_add")
         col.operator("mesh.subdivide")
         col.operator("mesh.loopcut_slide")
@@ -1724,7 +1725,7 @@ class VIEW3D_PT_tools_projectpaint(View3DPaintPanel, Panel):
         layout.prop(ipaint, "use_cavity")
         if ipaint.use_cavity:
             layout.template_curve_mapping(ipaint, "cavity_curve", brush=True)
-        
+
         layout.prop(ipaint, "seam_bleed")
         layout.prop(ipaint, "dither")
         self.unified_paint_settings(layout, context)

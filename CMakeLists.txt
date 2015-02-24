@@ -369,7 +369,7 @@ endif()
 mark_as_advanced(LLVM_STATIC)
 
 # disable for now, but plan to support on all platforms eventually
-option(WITH_MEM_JEMALLOC   "Enable malloc replacement (http://www.canonware.com/jemalloc)" OFF)
+option(WITH_MEM_JEMALLOC   "Enable malloc replacement (http://www.canonware.com/jemalloc)" ON)
 mark_as_advanced(WITH_MEM_JEMALLOC)
 
 # currently only used for BLI_mempool
@@ -403,6 +403,7 @@ option(WITH_GL_EGL              "Use the EGL OpenGL system library instead of th
 option(WITH_GL_PROFILE_COMPAT   "Support using the OpenGL 'compatibility' profile. (deprecated)"                                                    ON )
 option(WITH_GL_PROFILE_CORE     "Support using the OpenGL 3.2+ 'core' profile."                                                                     OFF)
 option(WITH_GL_PROFILE_ES20     "Support using OpenGL ES 2.0. (thru either EGL or the AGL/WGL/XGL 'es20' profile)"                                  OFF)
+option(WITH_GPU_DEBUG           "Create a debug OpenGL context (allows inserting custom messages and getting notifications for bad GL use)"         OFF)
 
 mark_as_advanced(
 	WITH_GLEW_MX
@@ -411,6 +412,7 @@ mark_as_advanced(
 	WITH_GL_PROFILE_COMPAT
 	WITH_GL_PROFILE_CORE
 	WITH_GL_PROFILE_ES20
+	WITH_GPU_DEBUG
 )
 
 if(WITH_GL_PROFILE_COMPAT)
@@ -838,17 +840,21 @@ if(UNIX AND NOT APPLE)
 
 	if(WITH_SDL)
 		if(WITH_SDL_DYNLOAD)
-			set(SDLMAIN_LIBRARY)
 			set(SDL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extern/sdlew/include/SDL2")
 			set(SDL_LIBRARY)
-			set(SDL_LIBRARY_TEMP)
 		else()
-			find_package_wrapper(SDL)
+			find_package_wrapper(SDL2)
+			if(SDL2_FOUND)
+				# Use same names for both versions of SDL until we move to 2.x.
+				set(SDL_INCLUDE_DIR "${SDL2_INCLUDE_DIR}")
+				set(SDL_LIBRARY "${SDL2_LIBRARY}")
+				set(SDL_FOUND "${SDL2_FOUND}")
+			else()
+				find_package_wrapper(SDL)
+			endif()
 			mark_as_advanced(
-				SDLMAIN_LIBRARY
 				SDL_INCLUDE_DIR
 				SDL_LIBRARY
-				SDL_LIBRARY_TEMP
 			)
 			# unset(SDLMAIN_LIBRARY CACHE)
 			if(NOT SDL_FOUND)
@@ -1251,8 +1257,8 @@ elseif(WIN32)
 
 		find_package(png)
 		if(NOT PNG_FOUND)
-			set(PNG_PNG_INCLUDE_DIR ${LIBDIR}/png/include)
 			message(WARNING "Using HARDCODED libpng locations")
+			set(PNG_PNG_INCLUDE_DIR ${LIBDIR}/png/include)
 			set(PNG_LIBRARIES libpng)
 			set(PNG "${LIBDIR}/png")
 			set(PNG_INCLUDE_DIRS "${PNG}/include")
@@ -1339,19 +1345,19 @@ elseif(WIN32)
 			set(OPENEXR_VERSION "2.1")
 			find_package(OPENEXR REQUIRED)
 			if(NOT OPENEXR_FOUND)
-			message(WARNING "Using HARDCODED OpenEXR locations")
-			set(OPENEXR ${LIBDIR}/openexr)
-			set(OPENEXR_INCLUDE_DIR ${OPENEXR}/include)
-			set(OPENEXR_INCLUDE_DIRS ${OPENEXR}/include/OpenEXR)
-			set(OPENEXR_LIBPATH ${OPENEXR}/lib)
-			set(OPENEXR_LIBRARIES
-				${OPENEXR_LIBPATH}/Iex-2_2.lib
-				${OPENEXR_LIBPATH}/Half.lib
-				${OPENEXR_LIBPATH}/IlmImf-2_2.lib
-				${OPENEXR_LIBPATH}/Imath-2_2.lib
-				${OPENEXR_LIBPATH}/IlmThread-2_2.lib
-			)
-			endif(NOT OPENEXR_FOUND)
+				message(WARNING "Using HARDCODED OpenEXR locations")
+				set(OPENEXR ${LIBDIR}/openexr)
+				set(OPENEXR_INCLUDE_DIR ${OPENEXR}/include)
+				set(OPENEXR_INCLUDE_DIRS ${OPENEXR}/include/OpenEXR)
+				set(OPENEXR_LIBPATH ${OPENEXR}/lib)
+				set(OPENEXR_LIBRARIES
+					${OPENEXR_LIBPATH}/Iex-2_2.lib
+					${OPENEXR_LIBPATH}/Half.lib
+					${OPENEXR_LIBPATH}/IlmImf-2_2.lib
+					${OPENEXR_LIBPATH}/Imath-2_2.lib
+					${OPENEXR_LIBPATH}/IlmThread-2_2.lib
+				)
+			endif()
 		endif()
 
 		if(WITH_IMAGE_TIFF)
@@ -1391,10 +1397,10 @@ elseif(WIN32)
 		if(WITH_BOOST)
 			if(WITH_CYCLES_OSL)
 				set(boost_extra_libs wave)
-			endif(WITH_CYCLES_OSL)
+			endif()
 			if(WITH_INTERNATIONAL)
 				list(APPEND boost_extra_libs locale)
-			endif(WITH_INTERNATIONAL)
+			endif()
 			set(Boost_USE_STATIC_RUNTIME ON) # prefix lib
 			set(Boost_USE_MULTITHREADED ON) # suffix -mt
 			set(Boost_USE_STATIC_LIBS ON) # suffix -s
@@ -1521,7 +1527,7 @@ elseif(WIN32)
 		if(WITH_MINGW64)
 			message(STATUS "Compiling for 64 bit with MinGW-w64.")
 			execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-			if (GCC_VERSION VERSION_GREATER 4.9 OR GCC_VERSION VERSION_EQUAL 4.9)
+			if(GCC_VERSION VERSION_GREATER 4.9 OR GCC_VERSION VERSION_EQUAL 4.9)
 				set(LIBDIR ${CMAKE_SOURCE_DIR}/../lib/mingw64_gcc49)
 			else()
 				set(LIBDIR ${CMAKE_SOURCE_DIR}/../lib/mingw64)
@@ -2346,6 +2352,10 @@ if(WITH_GL_EGL)
 	list(APPEND GL_DEFINITIONS -DWITH_EGL)
 endif()
 
+if(WITH_GPU_DEBUG)
+	list(APPEND GL_DEFINITIONS -DWITH_GPU_DEBUG)
+endif()
+
 #-----------------------------------------------------------------------------
 # Configure OpenMP.
 if(WITH_OPENMP)
@@ -2828,6 +2838,7 @@ if(FIRST_RUN)
 	info_cfg_option(WITH_GL_PROFILE_COMPAT)
 	info_cfg_option(WITH_GL_PROFILE_CORE)
 	info_cfg_option(WITH_GL_PROFILE_ES20)
+	info_cfg_option(WITH_GPU_DEBUG)
 	if(WIN32)
 		info_cfg_option(WITH_GL_ANGLE)
 	endif()
