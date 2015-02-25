@@ -495,8 +495,6 @@ static void info_draw_ribbon_buttons(const bContext *C, ARegion *ar)
 	BLI_snprintf(uiblockstr, sizeof(uiblockstr), "win %p", (void *)ar);
 	block = UI_block_begin(C, ar, uiblockstr, UI_EMBOSS);
 	
-	
-	block->iHateYouAll = 42;
 
 	/* exception to make space for collapsed region icon */
 	/*for (artmp = CTX_wm_area(C)->regionbase.first; artmp; artmp = artmp->next) {
@@ -733,6 +731,14 @@ static void view3d_tools_area_init(wmWindowManager *wm, ARegion *ar)
 {
 	wmKeyMap *keymap;
 
+
+
+	ar->regiontype = RGN_TYPE_TOOLS;			// When the region is constructed, setting this on it forces its panels to be drawn as tabs
+
+
+
+
+
 	ED_region_panels_init(wm, ar);
 
 	keymap = WM_keymap_find(wm->defaultconf, "3D View Generic", SPACE_VIEW3D, 0);
@@ -745,6 +751,10 @@ static void view3d_tools_area_draw(const bContext *C, ARegion *ar)
 }
 
 
+static void drawPanel(const struct bContext *C, struct Panel *p) 
+{
+	// draw the contents of the tab
+}
 
 
 
@@ -820,17 +830,11 @@ void ED_spacetype_info(void)
 
 
 
-
-
-
-
-
-
-
-
-	/* Regions: ribbon */
 	//art = MEM_callocN(sizeof(ARegionType), "spacetype file region");
-	//art->regionid = RGN_TYPE_WINDOW;		// RGN_TYPE_UI;
+	////art->regionid = RGN_TYPE_UI;
+	////art->regionid = RGN_TYPE_TOOLS;
+	//art->regionid = RGN_TYPE_WINDOW;
+	////art->regi
 	//art->prefsizey = 90;
 	////art->keymapflag = ED_KEYMAP_UI;
 	//art->listener = file_ui_area_listener;
@@ -841,36 +845,32 @@ void ED_spacetype_info(void)
 	//art->minsizex = 1000;
 
 
-
-
-
-
-	art = MEM_callocN(sizeof(ARegionType), "spacetype file region");
-	//art->regionid = RGN_TYPE_UI;
-	//art->regionid = RGN_TYPE_TOOLS;
-	art->regionid = RGN_TYPE_WINDOW;
-	//art->regi
-	art->prefsizey = 90;
-	//art->keymapflag = ED_KEYMAP_UI;
-	art->listener = file_ui_area_listener;
-	art->init = info_ribbon_area_init;
-	art->draw = info_ribbon_draw;
-	BLI_addhead(&st->regiontypes, art);
-	art->minsizey = 80;
-	art->minsizex = 1000;
-
-
 	//ribbon_panel_register(art);
 	
 
-	/*PanelType *pt;
-
-	pt = MEM_callocN(sizeof(PanelType), "spacetype file system directories");
-	strcpy(pt->idname, "FILE_PT_system");
-	strcpy(pt->label, N_("System"));
+	PanelType *pt;
+	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab panelType");
+	strcpy(pt->idname, "INFO_PT_Home");
+	strcpy(pt->label, N_("Home"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = file_panel_system;
-	BLI_addhead(&art->paneltypes, art);*/
+	pt->draw = drawPanel;
+	BLI_addtail(&art->paneltypes, pt);
+
+
+	pt = MEM_callocN(sizeof(PanelType), "ribbon insert tab panelType");
+	strcpy(pt->idname, "INFO_PT_Insert");
+	strcpy(pt->label, N_("Insert"));
+	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
+	pt->draw = drawPanel;
+	BLI_addtail(&art->paneltypes, pt)
+
+
+	pt = MEM_callocN(sizeof(PanelType), "ribbon pageLayout tab panelType");
+	strcpy(pt->idname, "INFO_PT_PageLayout");
+	strcpy(pt->label, N_("Page layout"));
+	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
+	pt->draw = drawPanel;
+	BLI_addtail(&art->paneltypes, pt);
 
 
 
