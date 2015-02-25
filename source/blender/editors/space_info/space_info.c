@@ -727,7 +727,7 @@ static void view3d_buttons_area_listener(bScreen *UNUSED(sc), ScrArea *UNUSED(sa
 
 }
 
-static void view3d_tools_area_init(wmWindowManager *wm, ARegion *ar)
+static void ribbon_tabs_init(wmWindowManager *wm, ARegion *ar)
 {
 	wmKeyMap *keymap;
 
@@ -745,9 +745,9 @@ static void view3d_tools_area_init(wmWindowManager *wm, ARegion *ar)
 	WM_event_add_keymap_handler(&ar->handlers, keymap);
 }
 
-static void view3d_tools_area_draw(const bContext *C, ARegion *ar)
+static void ribbon_tabs_draw(const bContext *C, ARegion *ar)
 {
-	ED_region_panels(C, ar, 1, CTX_data_mode_string(C), -1);
+	ED_region_panels(C, ar, true, CTX_data_mode_string(C), -1);
 }
 
 
@@ -822,8 +822,8 @@ void ED_spacetype_info(void)
 	art->prefsizey = 50; /* XXX */
 	art->keymapflag = ED_KEYMAP_UI | ED_KEYMAP_FRAMES;
 	art->listener = view3d_buttons_area_listener;
-	art->init = view3d_tools_area_init;
-	art->draw = view3d_tools_area_draw;
+	art->init = ribbon_tabs_init;
+	art->draw = ribbon_tabs_draw;
 	BLI_addhead(&st->regiontypes, art);
 
 
@@ -851,25 +851,34 @@ void ED_spacetype_info(void)
 	PanelType *pt;
 	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab panelType");
 	strcpy(pt->idname, "INFO_PT_Home");
-	strcpy(pt->label, N_("Home"));
+	strcpy(pt->label, N_("Home content"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
 	pt->draw = drawPanel;
+	strcpy(pt->category, "Home");
+	//pt->draw_header = false;
+	pt->flag = PNL_NO_HEADER;
 	BLI_addtail(&art->paneltypes, pt);
 
 
 	pt = MEM_callocN(sizeof(PanelType), "ribbon insert tab panelType");
 	strcpy(pt->idname, "INFO_PT_Insert");
-	strcpy(pt->label, N_("Insert"));
+	strcpy(pt->label, N_("Insert content"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
 	pt->draw = drawPanel;
-	BLI_addtail(&art->paneltypes, pt)
+	strcpy(pt->category, "Insert");
+	//pt->draw_header = false;
+	pt->flag = PNL_NO_HEADER;
+	BLI_addtail(&art->paneltypes, pt);
 
 
 	pt = MEM_callocN(sizeof(PanelType), "ribbon pageLayout tab panelType");
 	strcpy(pt->idname, "INFO_PT_PageLayout");
-	strcpy(pt->label, N_("Page layout"));
+	strcpy(pt->label, N_("Page layout content"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
 	pt->draw = drawPanel;
+	strcpy(pt->category, "Page layout");
+	//pt->draw_header = false;
+	pt->flag = PNL_NO_HEADER;
 	BLI_addtail(&art->paneltypes, pt);
 
 
