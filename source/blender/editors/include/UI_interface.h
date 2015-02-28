@@ -938,6 +938,7 @@ void uiItemBooleanO(uiLayout *layout, const char *name, int icon, const char *op
 void uiItemIntO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, int value);
 void uiItemFloatO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, float value);
 void uiItemStringO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, const char *value);
+void operatorButton(uiLayout *layout, char *opname);
 
 PointerRNA uiItemFullO_ptr(uiLayout *layout, struct wmOperatorType *ot, const char *name, int icon, IDProperty *properties, int context, int flag);
 PointerRNA uiItemFullO(uiLayout *layout, const char *idname, const char *name, int icon, struct IDProperty *properties, int context, int flag);

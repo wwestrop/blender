@@ -1070,6 +1070,21 @@ void uiItemEnumO_string(uiLayout *layout, const char *name, int icon, const char
 	uiItemFullO_ptr(layout, ot, name, icon, ptr.data, layout->root->opcontext, 0);
 }
 
+/** Creates a new button to invoke a defined operator (looked up by its name)
+ *  \param layout The layout the new button will be injected into
+ *  \param opname The name of the wmOperatorType, used to look up the function of this button */
+void operatorButton(uiLayout *layout, char *opname)
+{
+	wmOperatorType *ot = WM_operatortype_find(opname, 0); /* print error next */
+	PointerRNA ptr;
+
+	UI_OPERATOR_ERROR_RET(ot, opname, return);
+
+	WM_operator_properties_create_ptr(&ptr, ot);
+
+	uiItemFullO_ptr(layout, ot, ot->name, ot->icon, ptr.data, layout->root->opcontext, 0);
+}
+
 void uiItemBooleanO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, int value)
 {
 	wmOperatorType *ot = WM_operatortype_find(opname, 0); /* print error next */

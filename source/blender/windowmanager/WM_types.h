@@ -568,6 +568,8 @@ typedef struct wmOperatorType {
 	/* Flag last for padding */
 	short flag;
 
+	int icon;
+
 } wmOperatorType;
 
 #ifdef WITH_INPUT_IME
