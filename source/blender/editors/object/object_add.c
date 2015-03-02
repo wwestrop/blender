@@ -938,6 +938,7 @@ void OBJECT_OT_lamp_add(wmOperatorType *ot)
 	ot->name = "Add Lamp";
 	ot->description = "Add a lamp object to the scene";
 	ot->idname = "OBJECT_OT_lamp_add";
+	ot->icon = ICON_LAMP;
 
 	/* api callbacks */
 	ot->invoke = WM_menu_invoke;

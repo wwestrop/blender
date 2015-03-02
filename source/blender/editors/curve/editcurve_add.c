@@ -56,6 +56,9 @@
 #include "ED_view3d.h"
 #include "ED_curve.h"
 
+
+#include "UI_resources.h"
+
 #include "curve_intern.h"
 
 static const float nurbcircle[8][2] = {
@@ -570,6 +573,7 @@ void CURVE_OT_primitive_bezier_curve_add(wmOperatorType *ot)
 	ot->name = "Add Bezier";
 	ot->description = "Construct a Bezier Curve";
 	ot->idname = "CURVE_OT_primitive_bezier_curve_add";
+	ot->icon = ICON_CURVE_BEZCURVE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_bezier_exec;
@@ -593,6 +597,7 @@ void CURVE_OT_primitive_bezier_circle_add(wmOperatorType *ot)
 	ot->name = "Add Bezier Circle";
 	ot->description = "Construct a Bezier Circle";
 	ot->idname = "CURVE_OT_primitive_bezier_circle_add";
+	ot->icon = ICON_CURVE_BEZCIRCLE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_bezier_circle_exec;
@@ -616,6 +621,7 @@ void CURVE_OT_primitive_nurbs_curve_add(wmOperatorType *ot)
 	ot->name = "Add Nurbs Curve";
 	ot->description = "Construct a Nurbs Curve";
 	ot->idname = "CURVE_OT_primitive_nurbs_curve_add";
+	ot->icon = ICON_CURVE_NCURVE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_nurbs_curve_exec;
@@ -639,6 +645,7 @@ void CURVE_OT_primitive_nurbs_circle_add(wmOperatorType *ot)
 	ot->name = "Add Nurbs Circle";
 	ot->description = "Construct a Nurbs Circle";
 	ot->idname = "CURVE_OT_primitive_nurbs_circle_add";
+	ot->icon = ICON_CURVE_NCIRCLE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_nurbs_circle_exec;
@@ -662,6 +669,7 @@ void CURVE_OT_primitive_nurbs_path_add(wmOperatorType *ot)
 	ot->name = "Add Path";
 	ot->description = "Construct a Path";
 	ot->idname = "CURVE_OT_primitive_nurbs_path_add";
+	ot->icon = ICON_CURVE_PATH;
 
 	/* api callbacks */
 	ot->exec = add_primitive_curve_path_exec;

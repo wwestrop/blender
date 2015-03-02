@@ -779,6 +779,28 @@ static void drawPanel_HomeShapes(const struct bContext *C, struct Panel *p)
 	
 }
 
+static void drawPanel_HomeCurves(const struct bContext *C, struct Panel *p)
+{
+	uiLayout *col = uiLayoutRow(p->layout, false);
+
+	operatorButton(col, "CURVE_OT_primitive_bezier_curve_add");
+	operatorButton(col, "CURVE_OT_primitive_bezier_circle_add");
+
+	operatorButton(col, "CURVE_OT_primitive_nurbs_curve_add");
+	operatorButton(col, "CURVE_OT_primitive_nurbs_circle_add");
+	operatorButton(col, "CURVE_OT_primitive_nurbs_path_add");
+}
+
+
+static void drawPanel_HomeLighting(const struct bContext *C, struct Panel *p)
+{
+	uiLayout *col = uiLayoutRow(p->layout, false);
+
+	operatorButton(col, "OBJECT_OT_lamp_add");
+}
+
+ 
+
 
 /* only called once, from space/spacetypes.c */
 void ED_spacetype_info(void)
@@ -849,6 +871,24 @@ void ED_spacetype_info(void)
 	strcpy(pt->label, N_("Shapes"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
 	pt->draw = drawPanel_HomeShapes;
+	strcpy(pt->category, "Home");
+	pt->flag = PNL_NO_HEADER;
+	BLI_addtail(&art->paneltypes, pt);
+
+	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab - lighting panelType");
+	strcpy(pt->idname, "INFO_PT_Home_Lighting");
+	strcpy(pt->label, N_("Lighting"));
+	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
+	pt->draw = drawPanel_HomeLighting;
+	strcpy(pt->category, "Home");
+	pt->flag = PNL_NO_HEADER;
+	BLI_addtail(&art->paneltypes, pt);
+
+	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab - curves panelType");
+	strcpy(pt->idname, "INFO_PT_Home_Curves");
+	strcpy(pt->label, N_("Curves"));
+	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
+	pt->draw = drawPanel_HomeCurves;
 	strcpy(pt->category, "Home");
 	pt->flag = PNL_NO_HEADER;
 	BLI_addtail(&art->paneltypes, pt);
