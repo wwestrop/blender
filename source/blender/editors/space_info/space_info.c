@@ -211,30 +211,6 @@ static void info_main_area_draw(const bContext *C, ARegion *ar)
 
 static int fooButPoll(bContext *C, wmOperator *ot)
 {
-	//SpaceInfo *sinfo = CTX_wm_space_info(C);
-	//ReportList *reports = CTX_wm_reports(C);
-	//int report_mask = info_report_mask(sinfo);
-
-	//Report *report;
-
-	//DynStr *buf_dyn = BLI_dynstr_new();
-	//char *buf_str;
-
-	//for (report = reports->list.first; report; report = report->next) {
-	//	if ((report->type & report_mask) && (report->flag & SELECT)) {
-	//		BLI_dynstr_append(buf_dyn, report->message);
-	//		BLI_dynstr_append(buf_dyn, "\n");
-	//	}
-	//}
-
-	//buf_str = BLI_dynstr_get_cstring(buf_dyn);
-	//BLI_dynstr_free(buf_dyn);
-
-	//WM_clipboard_text_set(buf_str, 0);
-
-	//MEM_freeN(buf_str);
-	//return OPERATOR_FINISHED;
-
 	return OPERATOR_RUNNING_MODAL;
 }
 
@@ -750,18 +726,58 @@ static void ribbon_tabs_draw(const bContext *C, ARegion *ar)
 	ED_region_panels(C, ar, true, CTX_data_mode_string(C), -1);
 }
 
+static void butHandler(struct bContext *C, void *arg1, void *arg2)
+{
+	printf("button pressed");
+}
 
 static void drawPanel(const struct bContext *C, struct Panel *p) 
 {
 	// draw the contents of the tab
+
+	uiLayout *col = uiLayoutRow(p->layout, false);
+
+	//col = uiLayoutColumnFlow(p->layout, 6, UI_LAYOUT_ALIGN_LEFT);
+	uiLayout *foo = uiLayoutGetBlock(p->layout);
+	//uiLayout *foo = uiLayoutRow(p->layout, RGN_ALIGN_BOTTOM);
+	uiBut *but = uiDefButO(foo, UI_BTYPE_BUT, "INFO_OT_dummyOp", CTX_data_mode_string(C), "strr", 30, 30, 150, 60, "tippp");
+
+}
+
+
+static void drawPanel_HomeStart(const struct bContext *C, struct Panel *p)
+{
+
+	uiLayout *col = uiLayoutRow(p->layout, false);
+
+
+	operatorButton(col, "WM_OT_read_homefile");
+	operatorButton(col, "WM_OT_open_mainfile");
+	operatorButton(col, "WM_OT_save_mainfile");
+
 }
 
 
 
+static void drawPanel_HomeShapes(const struct bContext *C, struct Panel *p)
+{
+	uiLayout *col = uiLayoutRow(p->layout, false);
 
+	operatorButton(col, "MESH_OT_primitive_plane_add");
+	operatorButton(col, "MESH_OT_primitive_cube_add");
+	operatorButton(col, "MESH_OT_primitive_circle_add");
 
+	operatorButton(col, "MESH_OT_primitive_uv_sphere_add");
+	operatorButton(col, "MESH_OT_primitive_ico_sphere_add");
 
+	operatorButton(col, "MESH_OT_primitive_cylinder_add");
+	operatorButton(col, "MESH_OT_primitive_cone_add");
+	operatorButton(col, "MESH_OT_primitive_torus_add");
 
+	operatorButton(col, "MESH_OT_primitive_grid_add");
+	operatorButton(col, "MESH_OT_primitive_monkey_add");
+	
+}
 
 
 /* only called once, from space/spacetypes.c */
@@ -806,15 +822,6 @@ void ED_spacetype_info(void)
 
 
 
-
-
-
-
-
-
-
-
-
 	/* tabbed toolbar (that's what I hope) */
 	art = MEM_callocN(sizeof(ARegionType), "spacetype view3d tools region");
 	art->regionid = RGN_TYPE_TOOLS;
@@ -827,62 +834,37 @@ void ED_spacetype_info(void)
 	BLI_addhead(&st->regiontypes, art);
 
 
-
-
-
-	//art = MEM_callocN(sizeof(ARegionType), "spacetype file region");
-	////art->regionid = RGN_TYPE_UI;
-	////art->regionid = RGN_TYPE_TOOLS;
-	//art->regionid = RGN_TYPE_WINDOW;
-	////art->regi
-	//art->prefsizey = 90;
-	////art->keymapflag = ED_KEYMAP_UI;
-	//art->listener = file_ui_area_listener;
-	//art->init = info_ribbon_area_init;
-	//art->draw = info_ribbon_draw;
-	//BLI_addhead(&st->regiontypes, art);
-	//art->minsizey = 80;
-	//art->minsizex = 1000;
-
-
-	//ribbon_panel_register(art);
-	
-
 	PanelType *pt;
-	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab panelType");
-	strcpy(pt->idname, "INFO_PT_Home");
-	strcpy(pt->label, N_("Home content"));
+	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab - start panelType");
+	strcpy(pt->idname, "INFO_PT_Home_Start");
+	strcpy(pt->label, N_("Start"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel;
+	pt->draw = drawPanel_HomeStart;
 	strcpy(pt->category, "Home");
-	//pt->draw_header = false;
+	pt->flag = PNL_NO_HEADER;
+	BLI_addtail(&art->paneltypes, pt);
+
+	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab - shapes panelType");
+	strcpy(pt->idname, "INFO_PT_Home_Shapes");
+	strcpy(pt->label, N_("Shapes"));
+	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
+	pt->draw = drawPanel_HomeShapes;
+	strcpy(pt->category, "Home");
 	pt->flag = PNL_NO_HEADER;
 	BLI_addtail(&art->paneltypes, pt);
 
 
-	pt = MEM_callocN(sizeof(PanelType), "ribbon insert tab panelType");
-	strcpy(pt->idname, "INFO_PT_Insert");
-	strcpy(pt->label, N_("Insert content"));
+	pt = MEM_callocN(sizeof(PanelType), "ribbon modelling tab panelType");
+	strcpy(pt->idname, "INFO_PT_Modelling");
+	strcpy(pt->label, N_("Modelling"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
 	pt->draw = drawPanel;
-	strcpy(pt->category, "Insert");
-	//pt->draw_header = false;
+	strcpy(pt->category, "Modelling");
 	pt->flag = PNL_NO_HEADER;
 	BLI_addtail(&art->paneltypes, pt);
 
 
-	pt = MEM_callocN(sizeof(PanelType), "ribbon pageLayout tab panelType");
-	strcpy(pt->idname, "INFO_PT_PageLayout");
-	strcpy(pt->label, N_("Page layout content"));
-	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel;
-	strcpy(pt->category, "Page layout");
-	//pt->draw_header = false;
-	pt->flag = PNL_NO_HEADER;
-	BLI_addtail(&art->paneltypes, pt);
-
-
-
+	
 
 	recent_files_menu_register();
 

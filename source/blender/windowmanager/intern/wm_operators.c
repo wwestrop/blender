@@ -2289,6 +2289,7 @@ static void WM_OT_read_homefile(wmOperatorType *ot)
 	ot->name = "Reload Start-Up File";
 	ot->idname = "WM_OT_read_homefile";
 	ot->description = "Open the default file (doesn't save the current file)";
+	ot->icon = ICON_NEW;
 	
 	ot->invoke = WM_operator_confirm;
 	ot->exec = wm_homefile_read_exec;
@@ -2462,6 +2463,7 @@ static void WM_OT_open_mainfile(wmOperatorType *ot)
 	ot->name = "Open Blender File";
 	ot->idname = "WM_OT_open_mainfile";
 	ot->description = "Open a Blender file";
+	ot->icon = ICON_FILE_FOLDER;
 
 	ot->invoke = wm_open_mainfile_invoke;
 	ot->exec = wm_open_mainfile_exec;
@@ -3038,6 +3040,7 @@ static void WM_OT_save_mainfile(wmOperatorType *ot)
 	ot->name = "Save Blender File";
 	ot->idname = "WM_OT_save_mainfile";
 	ot->description = "Save the current Blender file";
+	ot->icon = ICON_FILE_TICK;
 	
 	ot->invoke = wm_save_mainfile_invoke;
 	ot->exec = wm_save_as_mainfile_exec;

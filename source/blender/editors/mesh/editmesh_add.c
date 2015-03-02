@@ -50,6 +50,9 @@
 #include "ED_screen.h"
 #include "ED_object.h"
 
+
+#include "UI_resources.h"
+
 #include "mesh_intern.h"  /* own include */
 
 /* ********* add primitive operators ************* */
@@ -129,6 +132,7 @@ void MESH_OT_primitive_plane_add(wmOperatorType *ot)
 	ot->name = "Add Plane";
 	ot->description = "Construct a filled planar mesh with 4 vertices";
 	ot->idname = "MESH_OT_primitive_plane_add";
+	ot->icon = ICON_MESH_PLANE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_plane_exec;
@@ -175,6 +179,7 @@ void MESH_OT_primitive_cube_add(wmOperatorType *ot)
 	ot->name = "Add Cube";
 	ot->description = "Construct a cube mesh";
 	ot->idname = "MESH_OT_primitive_cube_add";
+	ot->icon = ICON_MESH_CUBE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_cube_exec;
@@ -231,6 +236,7 @@ void MESH_OT_primitive_circle_add(wmOperatorType *ot)
 	ot->name = "Add Circle";
 	ot->description = "Construct a circle mesh";
 	ot->idname = "MESH_OT_primitive_circle_add";
+	ot->icon = ICON_MESH_CIRCLE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_circle_exec;
@@ -289,6 +295,7 @@ void MESH_OT_primitive_cylinder_add(wmOperatorType *ot)
 	ot->name = "Add Cylinder";
 	ot->description = "Construct a cylinder mesh";
 	ot->idname = "MESH_OT_primitive_cylinder_add";
+	ot->icon = ICON_MESH_CYLINDER;
 
 	/* api callbacks */
 	ot->exec = add_primitive_cylinder_exec;
@@ -346,6 +353,7 @@ void MESH_OT_primitive_cone_add(wmOperatorType *ot)
 	ot->name = "Add Cone";
 	ot->description = "Construct a conic mesh";
 	ot->idname = "MESH_OT_primitive_cone_add";
+	ot->icon = ICON_MESH_CONE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_cone_exec;
@@ -402,6 +410,7 @@ void MESH_OT_primitive_grid_add(wmOperatorType *ot)
 	ot->name = "Add Grid";
 	ot->description = "Construct a grid mesh";
 	ot->idname = "MESH_OT_primitive_grid_add";
+	ot->icon = ICON_MESH_GRID;
 
 	/* api callbacks */
 	ot->exec = add_primitive_grid_exec;
@@ -456,6 +465,7 @@ void MESH_OT_primitive_monkey_add(wmOperatorType *ot)
 	ot->name = "Add Monkey";
 	ot->description = "Construct a Suzanne mesh";
 	ot->idname = "MESH_OT_primitive_monkey_add";
+	ot->icon = ICON_MESH_MONKEY;
 
 	/* api callbacks */
 	ot->exec = add_primitive_monkey_exec;
@@ -504,6 +514,7 @@ void MESH_OT_primitive_uv_sphere_add(wmOperatorType *ot)
 	ot->name = "Add UV Sphere";
 	ot->description = "Construct a UV sphere mesh";
 	ot->idname = "MESH_OT_primitive_uv_sphere_add";
+	ot->icon = ICON_MESH_UVSPHERE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_uvsphere_exec;
@@ -557,6 +568,7 @@ void MESH_OT_primitive_ico_sphere_add(wmOperatorType *ot)
 	ot->name = "Add Ico Sphere";
 	ot->description = "Construct an Icosphere mesh";
 	ot->idname = "MESH_OT_primitive_ico_sphere_add";
+	ot->icon = ICON_MESH_ICOSPHERE;
 
 	/* api callbacks */
 	ot->exec = add_primitive_icosphere_exec;
