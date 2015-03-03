@@ -730,7 +730,7 @@ void                       UI_panel_category_active_set(struct ARegion *ar, cons
 struct PanelCategoryDyn   *UI_panel_category_find_mouse_over_ex(struct ARegion *ar, const int x, const int y);
 struct PanelCategoryDyn   *UI_panel_category_find_mouse_over(struct ARegion *ar, const struct wmEvent *event);
 void                       UI_panel_category_clear_all(struct ARegion *ar);
-void                       UI_panel_category_draw_all(struct ARegion *ar, const char *category_id_active);
+void                       UI_panel_category_draw_all(struct ARegion *ar, const char *category_id_active, bool horizontal);
 
 /* Handlers
  *

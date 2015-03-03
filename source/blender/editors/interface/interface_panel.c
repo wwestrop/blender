@@ -1415,11 +1415,36 @@ static void ui_panel_category_draw_tab(int mode, float minx, float miny, float m
 }
 
 
+
+
+static rcti* getTabGutterRect(rcti mask_of_drawIntoRegion, int gutterSize, bool horizontal)
+{
+
+	rcti* rect = malloc(sizeof(rcti));
+
+	if (horizontal) {
+		rect->xmin = mask_of_drawIntoRegion.xmin;
+		rect->ymin = mask_of_drawIntoRegion.ymax - gutterSize;
+		rect->xmax = mask_of_drawIntoRegion.xmax;
+		rect->ymax = mask_of_drawIntoRegion.ymax;
+	}
+	else {
+		rect->xmin = mask_of_drawIntoRegion.xmin;
+		rect->ymin = mask_of_drawIntoRegion.ymin;
+		rect->xmax = mask_of_drawIntoRegion.xmin + gutterSize;
+		rect->ymax = mask_of_drawIntoRegion.ymax;
+	}
+
+	return rect;
+
+}
+
+
 /**
  * Draw vertical tabs on the left side of the region,
  * one tab per category.
  */
-void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active)
+void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, bool horizontal)
 {
 	/* no tab outlines for */
 // #define USE_FLAT_INACTIVE
@@ -1438,7 +1463,9 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active)
 	const int tab_v_pad_text = iroundf((2 + ((px * 3) * dpi_fac)) * zoom);  /* pading of tabs around text */
 	const int tab_v_pad = iroundf((4 + (2 * px * dpi_fac)) * zoom);  /* padding between tabs */
 	const float tab_curve_radius = ((px * 3) * dpi_fac) * zoom;
-	const int roundboxtype = UI_CNR_TOP_LEFT | UI_CNR_BOTTOM_LEFT;
+	const int roundboxtype = horizontal 
+		? UI_CNR_TOP_LEFT | UI_CNR_TOP_RIGHT 
+		: UI_CNR_TOP_LEFT | UI_CNR_BOTTOM_LEFT;
 	bool is_alpha;
 	bool do_scaletabs = false;
 #ifdef USE_FLAT_INACTIVE
@@ -1489,9 +1516,11 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active)
 		BLF_enable(fstyle->uifont_id, BLF_KERNING_DEFAULT);
 	}
 
-	BLF_enable(fontid, BLF_ROTATION);
-	BLF_rotation(fontid, M_PI_2);
-	//UI_fontstyle_set(&style->widget);
+	if (!horizontal) {
+		BLF_enable(fontid, BLF_ROTATION);
+		BLF_rotation(fontid, M_PI_2);
+		//UI_fontstyle_set(&style->widget);
+	}
 	ui_fontscale(&fstyle_points, aspect / (U.pixelsize * 1.1f));
 	BLF_size(fontid, fstyle_points, U.dpi);
 
@@ -1543,7 +1572,10 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active)
 		glColor3ubv(theme_col_tab_bg);
 	}
 
-	glRecti(v2d->mask.xmin, v2d->mask.ymin, v2d->mask.xmin + category_tabs_width, v2d->mask.ymax);
+	// Draw tab gutter
+	rcti* gutterRect = getTabGutterRect(v2d->mask, category_tabs_width, horizontal);
+	glRecti(v2d->mask.xmin, v2d->mask.ymax - category_tabs_width, v2d->mask.xmax, v2d->mask.ymax);
+	free(gutterRect);
 
 	if (is_alpha) {
 		glDisable(GL_BLEND);
@@ -1662,6 +1694,9 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active)
 
 #undef USE_FLAT_INACTIVE
 }
+
+
+
 
 /* XXX should become modal keymap */
 /* AKey is opening/closing panels, independent of button state now */
