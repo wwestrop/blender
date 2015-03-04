@@ -1439,6 +1439,22 @@ static rcti* getTabGutterRect(rcti mask_of_drawIntoRegion, int gutterSize, bool 
 
 }
 
+//
+//static rcti* setTabRect(PanelCategoryDyn *panelDynamic, int gutterSize, bool horizontal)
+//{
+//	rcti* rct = panelDynamic->rect;
+//	const char *category_id = panelDynamic->idname;
+//	const char *category_id_draw = IFACE_(category_id);
+//	const int category_width = BLF_width(fontid, category_id_draw, BLF_DRAW_STR_DUMMY_MAX);
+//
+//
+//	rct->xmin = rct_xmin;
+//	rct->xmax = rct_xmax;
+//	rct->ymin = v2d->mask.ymax - (y_ofs + category_width + (tab_v_pad_text * 2));
+//	rct->ymax = v2d->mask.ymax - (y_ofs);
+//
+//}
+
 
 /**
  * Draw vertical tabs on the left side of the region,
@@ -1530,21 +1546,32 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 
 	BLI_assert(UI_panel_category_is_visible(ar));
 
-
 	/* calculate tab rect's and check if we need to scale down */
 	for (pc_dyn = ar->panels_category.first; pc_dyn; pc_dyn = pc_dyn->next) {
+		//setTabRect(&pc_dyn, category_tabs_width, horizontal);
+
 		rcti *rct = &pc_dyn->rect;
 		const char *category_id = pc_dyn->idname;
 		const char *category_id_draw = IFACE_(category_id);
 		const int category_width = BLF_width(fontid, category_id_draw, BLF_DRAW_STR_DUMMY_MAX);
 
-		rct->xmin = rct_xmin;
-		rct->xmax = rct_xmax;
+		if (!horizontal) {
+			rct->xmin = rct_xmin;
+			rct->xmax = rct_xmax;
+			rct->ymin = v2d->mask.ymax - (y_ofs + category_width + (tab_v_pad_text * 2));
+			rct->ymax = v2d->mask.ymax - y_ofs;
 
-		rct->ymin = v2d->mask.ymax - (y_ofs + category_width + (tab_v_pad_text * 2));
-		rct->ymax = v2d->mask.ymax - (y_ofs);
+			y_ofs += category_width + tab_v_pad + (tab_v_pad_text * 2);
+		}
+		else {
+			rct->xmin = v2d->mask.xmin + y_ofs;
+			rct->xmax = v2d->mask.xmin + (y_ofs + category_width + (tab_v_pad_text * 2));
+			rct->ymin = v2d->mask.ymax - category_tabs_width;
+			rct->ymax = v2d->mask.ymax;
 
-		y_ofs += category_width + tab_v_pad + (tab_v_pad_text * 2);
+			y_ofs += category_width + tab_v_pad + (tab_v_pad_text * 2);
+		}
+
 	}
 
 	if (y_ofs > BLI_rcti_size_y(&v2d->mask)) {
@@ -1637,7 +1664,13 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 			                                        category_width, NULL);
 		}
 
-		BLF_position(fontid, rct->xmax - text_v_ofs, rct->ymin + tab_v_pad_text, 0.0f);
+		// Set the position for where text will be drawn
+		if (!horizontal) {
+			BLF_position(fontid, rct->xmax - text_v_ofs, rct->ymin + tab_v_pad_text, 0.0f);
+		}
+		else {
+			BLF_position(fontid, rct->xmin + text_v_ofs, rct->ymin + tab_v_pad_text, 0.0f);
+		}
 
 		/* tab titles */
 
@@ -1649,7 +1682,7 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 
 		glDisable(GL_BLEND);
 
-		/* tab blackline remaining (last tab) */
+		/* tab blackline remaining (last tab) */			// These bits have something (but not everything) to do with the line that separates the gutter from the panel
 		if (pc_dyn->prev == NULL) {
 			glColor3ubv(theme_col_tab_divider);
 			glRecti(v2d->mask.xmin + category_tabs_width - px,
