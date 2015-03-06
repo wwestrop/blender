@@ -805,7 +805,7 @@ void UI_exit(void);
  * |      |
  * 8------4 */
 
-enum {
+typedef enum {
 	UI_CNR_TOP_LEFT     = (1 << 0),
 	UI_CNR_TOP_RIGHT    = (1 << 1),
 	UI_CNR_BOTTOM_RIGHT = (1 << 2),
@@ -813,7 +813,7 @@ enum {
 	/* just for convenience */
 	UI_CNR_NONE         = 0,
 	UI_CNR_ALL          = (UI_CNR_TOP_LEFT | UI_CNR_TOP_RIGHT | UI_CNR_BOTTOM_RIGHT | UI_CNR_BOTTOM_LEFT)
-};
+} uiCorner;
 
 /* not apart of the corner flags but mixed in some functions  */
 #define UI_RB_ALPHA (UI_CNR_ALL + 1)

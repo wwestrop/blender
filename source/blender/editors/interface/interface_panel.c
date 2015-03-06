@@ -1332,8 +1332,20 @@ void UI_panel_category_clear_all(ARegion *ar)
 }
 
 /* based on UI_draw_roundbox_gl_mode, check on making a version which allows us to skip some sides */
+/** 
+ * Draws a tab shape on the UI
+ * \param mode The OpenGL mode to draw. GL_POLYGON = tab filled, GL_LINE_STRIP = tab outlined 
+ * \param minx The rect into which the tab will be drawn
+ * \param miny The rect into which the tab will be drawn
+ * \param maxx The rect into which the tab will be drawn
+ * \param maxy The rect into which the tab will be drawn
+ * \param rad Radius of the rounded corners
+ * \param roundboxtype A bitfield of uiCorner values - describes which corners are rounded
+ * \param use_highlight 
+ * \param use_shadow 
+ * \param highlight_fade */
 static void ui_panel_category_draw_tab(int mode, float minx, float miny, float maxx, float maxy, float rad,
-                                       int roundboxtype,
+                                       uiCorner roundboxtype,
                                        const bool use_highlight, const bool use_shadow,
                                        const unsigned char highlight_fade[3])
 {
@@ -1350,6 +1362,7 @@ static void ui_panel_category_draw_tab(int mode, float minx, float miny, float m
 	}
 
 	glBegin(mode);
+
 
 	/* start with corner right-top */
 	if (use_highlight) {
@@ -1513,6 +1526,15 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 
 
 
+
+
+
+	//horizontal = false;
+
+
+
+
+
 	UI_GetThemeColor4ubv(TH_BACK, theme_col_back);
 	UI_GetThemeColor3ubv(TH_TEXT, theme_col_text);
 	UI_GetThemeColor3ubv(TH_TEXT_HI, theme_col_text_hi);
@@ -1558,18 +1580,25 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 		if (!horizontal) {
 			rct->xmin = rct_xmin;
 			rct->xmax = rct_xmax;
-			rct->ymin = v2d->mask.ymax - (y_ofs + category_width + (tab_v_pad_text * 2));
+			rct->ymin = v2d->mask.ymax - y_ofs - category_width - tab_v_pad_text * 2;
 			rct->ymax = v2d->mask.ymax - y_ofs;
 
-			y_ofs += category_width + tab_v_pad + (tab_v_pad_text * 2);
+			y_ofs += category_width + tab_v_pad + tab_v_pad_text * 2;
 		}
 		else {
-			rct->xmin = v2d->mask.xmin + y_ofs;
-			rct->xmax = v2d->mask.xmin + (y_ofs + category_width + (tab_v_pad_text * 2));
-			rct->ymin = v2d->mask.ymax - category_tabs_width;
-			rct->ymax = v2d->mask.ymax;
 
-			y_ofs += category_width + tab_v_pad + (tab_v_pad_text * 2);
+			int rct_ymax = v2d->mask.ymax - 3;
+			int rct_ymin = v2d->mask.ymax - category_tabs_width;
+
+			rct_ymax++;		// No fracking idea why the same measurements come out different sizes on different axes
+			rct_ymin++;
+
+			rct->xmin = v2d->mask.xmin + y_ofs;
+			rct->xmax = v2d->mask.xmin + y_ofs + category_width + tab_v_pad_text * 2;
+			rct->ymin = rct_ymin - px;				// no idea why one pixel off when rendered the other way
+			rct->ymax = rct_ymax;
+
+			y_ofs += category_width + tab_v_pad + tab_v_pad_text * 2;
 		}
 
 	}
@@ -1601,7 +1630,7 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 
 	// Draw tab gutter
 	rcti* gutterRect = getTabGutterRect(v2d->mask, category_tabs_width, horizontal);
-	glRecti(v2d->mask.xmin, v2d->mask.ymax - category_tabs_width, v2d->mask.xmax, v2d->mask.ymax);
+	glRecti(gutterRect->xmin, gutterRect->ymin, gutterRect->xmax, gutterRect->ymax);
 	free(gutterRect);
 
 	if (is_alpha) {
@@ -1637,8 +1666,17 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 			/* tab outline */
 			glColor3ubv(theme_col_tab_outline);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			ui_panel_category_draw_tab(GL_LINE_STRIP, rct->xmin - px, rct->ymin - px, rct->xmax - px, rct->ymax + px,
-			                           tab_curve_radius, roundboxtype, true, true, NULL);
+
+			if (!horizontal) {
+				ui_panel_category_draw_tab(GL_LINE_STRIP, rct->xmin - px, rct->ymin + px, rct->xmax - px, rct->ymax + px,
+					tab_curve_radius, roundboxtype, true, true, NULL);
+			}
+			else {
+				// TODO: Don't draw this highlight. It's all wrong when horizontal. I believe this is because
+				// of the drawing order of ui_panel_category_draw_tab - normally the right edge (i.e. where the tab
+				// joins the panel) is left open, however, when vertical, the bottom edge gets drawn over and cuts
+				// the tab off from it's panel.
+			}
 			/* tab highlight (3d look) */
 			glShadeModel(GL_SMOOTH);
 			glColor3ubv(is_active ? theme_col_tab_highlight : theme_col_tab_highlight_inactive);
@@ -1650,13 +1688,23 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 
-		/* tab blackline */
+		/* tab blackline - i.e tab underline underneath non-active tabs only, in this case.
+		This is the 'edge' of the panel. The active tab is part of the panel and thus breaks the
+		edge, the rest sit behind the edge. */
 		if (!is_active) {
 			glColor3ubv(theme_col_tab_divider);
-			glRecti(v2d->mask.xmin + category_tabs_width - px,
-			        rct->ymin - tab_v_pad,
-			        v2d->mask.xmin + category_tabs_width,
-			        rct->ymax + tab_v_pad);
+			if (!horizontal) {
+				glRecti(v2d->mask.xmin + category_tabs_width - px,
+					rct->ymin - tab_v_pad,
+					v2d->mask.xmin + category_tabs_width,
+					rct->ymax + tab_v_pad);
+			}
+			else {
+				glRecti(rct->xmin - tab_v_pad,
+					v2d->mask.ymax - category_tabs_width + px,
+					rct->xmax + tab_v_pad,
+					v2d->mask.ymax - category_tabs_width);
+			}
 		}
 
 		if (do_scaletabs) {
@@ -1682,20 +1730,43 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 
 		glDisable(GL_BLEND);
 
+
+		/* draw lines under */
 		/* tab blackline remaining (last tab) */			// These bits have something (but not everything) to do with the line that separates the gutter from the panel
 		if (pc_dyn->prev == NULL) {
 			glColor3ubv(theme_col_tab_divider);
-			glRecti(v2d->mask.xmin + category_tabs_width - px,
-			        rct->ymax + px,
-			        v2d->mask.xmin + category_tabs_width,
-			        v2d->mask.ymax);
+			//if (!horizontal) {
+			//	glRecti(v2d->mask.xmin + category_tabs_width - px,
+			//		rct->ymax + px,
+			//		v2d->mask.xmin + category_tabs_width,
+			//		v2d->mask.ymax);
+
+			//}
+			//else {
+			//	glRecti(rct->xmax + px,
+			//		v2d->mask.ymax - category_tabs_width + px,
+			//		v2d->mask.xmax,
+			//		v2d->mask.ymax - category_tabs_width);
+			//	/*glRecti(rct->xmax + px,
+			//		v2d->mask.ymax - category_tabs_width + px,
+			//		v2d->mask.xmax,
+			//		v2d->mask.ymax - category_tabs_width);*/
+			//}
 		}
 		if (pc_dyn->next == NULL) {
 			glColor3ubv(theme_col_tab_divider);
-			glRecti(v2d->mask.xmin + category_tabs_width - px,
-			        0,
-			        v2d->mask.xmin + category_tabs_width,
-			        rct->ymin);
+			if (!horizontal) {
+				glRecti(v2d->mask.xmin + category_tabs_width - px,
+					0,
+					v2d->mask.xmin + category_tabs_width,
+					rct->ymin);
+			}
+			else {
+				glRecti(rct->xmax,
+					v2d->mask.ymax - category_tabs_width + px,
+					v2d->mask.xmax,
+					v2d->mask.ymax - category_tabs_width);
+			}
 		}
 
 #ifdef USE_FLAT_INACTIVE
