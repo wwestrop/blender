@@ -1671,7 +1671,7 @@ int ED_area_header_switchbutton(const bContext *C, uiBlock *block, int yco)
 
 /************************ standard UI regions ************************/
 
-void ED_region_panels(const bContext *C, ARegion *ar, int vertical, const char *context, int contextnr)
+void ED_region_panels(const bContext *C, ARegion *ar, bool vertical, const char *context, int contextnr)
 {
 	ScrArea *sa = CTX_wm_area(C);
 	uiStyle *style = UI_style_get_dpi();
@@ -1825,6 +1825,7 @@ void ED_region_panels(const bContext *C, ARegion *ar, int vertical, const char *
 				        block, UI_LAYOUT_VERTICAL, panelContext,
 				        style->panelspace, 0, w - 2 * style->panelspace, em, 0, style);
 
+				/* lay-out the panel (not draw per-se), populate it with buttons */
 				pt->draw(C, panel);
 
 				UI_block_layout_resolve(block, &xco, &yco);
@@ -1842,7 +1843,7 @@ void ED_region_panels(const bContext *C, ARegion *ar, int vertical, const char *
 		}
 		BLI_SMALLSTACK_ITER_END;
 
-		/* align panels and return size */
+		/* align panels and return size (takes into account the tab bar, if displayed, and its orientation) */
 		UI_panels_end(C, ar, &x, &y);
 		
 		/* before setting the view */
@@ -1895,14 +1896,15 @@ void ED_region_panels(const bContext *C, ARegion *ar, int vertical, const char *
 	/* set the view */
 	UI_view2d_view_ortho(v2d);
 
-	/* draw panels */
+	/* draw panels' contents */
 	UI_panels_draw(C, ar);
 
 	/* restore view matrix */
 	UI_view2d_view_restore(C);
 	
+	/* Draw tabs if area's panels are organised into categories */
 	if (use_category_tabs) {
-		UI_panel_category_draw_all(ar, category);
+		UI_panel_category_draw_all(ar, category, !vertical);
 	}
 
 	/* scrollers */

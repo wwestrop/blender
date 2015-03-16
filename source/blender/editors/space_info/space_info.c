@@ -723,7 +723,7 @@ static void ribbon_tabs_init(wmWindowManager *wm, ARegion *ar)
 
 static void ribbon_tabs_draw(const bContext *C, ARegion *ar)
 {
-	ED_region_panels(C, ar, true, CTX_data_mode_string(C), -1);
+	ED_region_panels(C, ar, false, CTX_data_mode_string(C), -1);
 }
 
 static void butHandler(struct bContext *C, void *arg1, void *arg2)

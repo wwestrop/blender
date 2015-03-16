@@ -108,7 +108,7 @@ static void panel_activate_state(const bContext *C, Panel *pa, uiHandlePanelStat
 /*********************** space specific code ************************/
 /* temporary code to remove all sbuts stuff from panel code         */
 
-static int panel_aligned(ScrArea *sa, ARegion *ar)
+static eSpaceButtons_Align panel_aligned(ScrArea *sa, ARegion *ar)
 {
 	if (sa->spacetype == SPACE_BUTS && ar->regiontype == RGN_TYPE_WINDOW) {
 		SpaceButs *sbuts = sa->spacedata.first;
@@ -120,6 +120,8 @@ static int panel_aligned(ScrArea *sa, ARegion *ar)
 		return BUT_VERTICAL;
 	else if (sa->spacetype == SPACE_IMAGE && ar->regiontype == RGN_TYPE_PREVIEW)
 		return BUT_VERTICAL;
+	else if (sa->spacetype == SPACE_INFO && ar->regiontype == RGN_TYPE_TOOLS)
+		return BUT_HORIZONTAL;			// This is the main tool ribbon
 	else if (ELEM(ar->regiontype, RGN_TYPE_UI, RGN_TYPE_TOOLS, RGN_TYPE_TOOL_PROPS))
 		return BUT_VERTICAL;
 	
@@ -245,7 +247,7 @@ Panel *UI_panel_begin(ScrArea *sa, ARegion *ar, uiBlock *block, PanelType *pt, P
 	const char *hookname = NULL;
 #endif
 	const bool newpanel = (pa == NULL);
-	int align = panel_aligned(sa, ar);
+	eSpaceButtons_Align align = panel_aligned(sa, ar);
 
 	if (!newpanel) {
 		pa->type = pt;
@@ -786,7 +788,7 @@ static bool uiAlignPanelStep(ScrArea *sa, ARegion *ar, const float fac, const bo
 	PanelSort *ps, *panelsort, *psnext;
 	int a, tot = 0;
 	bool done;
-	int align = panel_aligned(sa, ar);
+	eSpaceButtons_Align align = panel_aligned(sa, ar);
 	bool has_category_tabs = UI_panel_category_is_visible(ar);
 	
 	/* count active, not tabbed panels */
@@ -838,8 +840,12 @@ static bool uiAlignPanelStep(ScrArea *sa, ARegion *ar, const float fac, const bo
 	ps->pa->ofsy = -get_panel_size_y(ps->pa);
 
 	if (has_category_tabs) {
+		/* If this is a tabbed area, nudge one edge of the panel's draw rect to account for the tab bar */
 		if (align == BUT_VERTICAL) {
 			ps->pa->ofsx += UI_PANEL_CATEGORY_MARGIN_WIDTH;
+		}
+		else if (align == BUT_HORIZONTAL) {
+			ps->pa->ofsy -= UI_PANEL_CATEGORY_MARGIN_WIDTH;
 		}
 	}
 
@@ -886,7 +892,7 @@ static bool uiAlignPanelStep(ScrArea *sa, ARegion *ar, const float fac, const bo
 static void ui_panels_size(ScrArea *sa, ARegion *ar, int *x, int *y)
 {
 	Panel *pa;
-	int align = panel_aligned(sa, ar);
+	eSpaceButtons_Align align = panel_aligned(sa, ar);
 	int sizex = 0;
 	int sizey = 0;
 
@@ -1568,7 +1574,7 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 
 	BLI_assert(UI_panel_category_is_visible(ar));
 
-	/* calculate tab rect's and check if we need to scale down */
+	/* calculate rect of the tab button and check if we need to scale down */
 	for (pc_dyn = ar->panels_category.first; pc_dyn; pc_dyn = pc_dyn->next) {
 		//setTabRect(&pc_dyn, category_tabs_width, horizontal);
 
@@ -1735,23 +1741,19 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 		/* tab blackline remaining (last tab) */			// These bits have something (but not everything) to do with the line that separates the gutter from the panel
 		if (pc_dyn->prev == NULL) {
 			glColor3ubv(theme_col_tab_divider);
-			//if (!horizontal) {
-			//	glRecti(v2d->mask.xmin + category_tabs_width - px,
-			//		rct->ymax + px,
-			//		v2d->mask.xmin + category_tabs_width,
-			//		v2d->mask.ymax);
+			if (!horizontal) {
+				glRecti(v2d->mask.xmin + category_tabs_width - px,
+					rct->ymax + px,
+					v2d->mask.xmin + category_tabs_width,
+					v2d->mask.ymax);
 
-			//}
-			//else {
-			//	glRecti(rct->xmax + px,
-			//		v2d->mask.ymax - category_tabs_width + px,
-			//		v2d->mask.xmax,
-			//		v2d->mask.ymax - category_tabs_width);
-			//	/*glRecti(rct->xmax + px,
-			//		v2d->mask.ymax - category_tabs_width + px,
-			//		v2d->mask.xmax,
-			//		v2d->mask.ymax - category_tabs_width);*/
-			//}
+			}
+			else {
+				glRecti(rct->xmax + px,
+					v2d->mask.ymax - category_tabs_width + px,
+					v2d->mask.xmax,
+					v2d->mask.ymax - category_tabs_width);
+			}
 		}
 		if (pc_dyn->next == NULL) {
 			glColor3ubv(theme_col_tab_divider);

@@ -853,14 +853,14 @@ float uiLayoutGetScaleX(uiLayout *layout);
 float uiLayoutGetScaleY(uiLayout *layout);
 
 /* layout specifiers */
-uiLayout *uiLayoutRow(uiLayout *layout, int align);
-uiLayout *uiLayoutColumn(uiLayout *layout, int align);
-uiLayout *uiLayoutColumnFlow(uiLayout *layout, int number, int align);
+uiLayout *uiLayoutRow(uiLayout *layout, bool align);
+uiLayout *uiLayoutColumn(uiLayout *layout, bool align);
+uiLayout *uiLayoutColumnFlow(uiLayout *layout, int number, bool align);
 uiLayout *uiLayoutBox(uiLayout *layout);
 uiLayout *uiLayoutListBox(uiLayout *layout, struct uiList *ui_list, struct PointerRNA *ptr, struct PropertyRNA *prop,
                           struct PointerRNA *actptr, struct PropertyRNA *actprop);
-uiLayout *uiLayoutAbsolute(uiLayout *layout, int align);
-uiLayout *uiLayoutSplit(uiLayout *layout, float percentage, int align);
+uiLayout *uiLayoutAbsolute(uiLayout *layout, bool align);
+uiLayout *uiLayoutSplit(uiLayout *layout, float percentage, bool align);
 uiLayout *uiLayoutOverlap(uiLayout *layout);
 uiBlock *uiLayoutAbsoluteBlock(uiLayout *layout);
 uiLayout *uiLayoutRadial(uiLayout *layout);

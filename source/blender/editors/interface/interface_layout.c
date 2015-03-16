@@ -2606,19 +2606,20 @@ static void ui_litem_layout_overlap(uiLayout *litem)
 	litem->y = y - litem->h;
 }
 
-/* layout create functions */
-uiLayout *uiLayoutRow(uiLayout *layout, int align)
+/** layout create functions 
+ *  \param segmented If true, visually merges all controls in the layout into a segmented group. Else the controls are all visually separated. */
+uiLayout *uiLayoutRow(uiLayout *layout, bool segmented)
 {
 	uiLayout *litem;
 
 	litem = MEM_callocN(sizeof(uiLayout), "uiLayoutRow");
 	litem->item.type = ITEM_LAYOUT_ROW;
 	litem->root = layout->root;
-	litem->align = align;
+	litem->align = segmented;
 	litem->active = true;
 	litem->enabled = true;
 	litem->context = layout->context;
-	litem->space = (align) ? 0 : layout->root->style->buttonspacex;
+	litem->space = (segmented) ? 0 : layout->root->style->buttonspacex;
 	litem->redalert = layout->redalert;
 	litem->w = layout->w;
 	BLI_addtail(&layout->items, litem);
@@ -2628,14 +2629,16 @@ uiLayout *uiLayoutRow(uiLayout *layout, int align)
 	return litem;
 }
 
-uiLayout *uiLayoutColumn(uiLayout *layout, int align)
+/**
+  * param segmented If true, visually merges all controls in the layout into a segmented group.Else the controls are all visually separated. */
+uiLayout *uiLayoutColumn(uiLayout *layout, bool segmented)
 {
 	uiLayout *litem;
 
 	litem = MEM_callocN(sizeof(uiLayout), "uiLayoutColumn");
 	litem->item.type = ITEM_LAYOUT_COLUMN;
 	litem->root = layout->root;
-	litem->align = align;
+	litem->align = segmented;
 	litem->active = true;
 	litem->enabled = true;
 	litem->context = layout->context;
@@ -2649,14 +2652,14 @@ uiLayout *uiLayoutColumn(uiLayout *layout, int align)
 	return litem;
 }
 
-uiLayout *uiLayoutColumnFlow(uiLayout *layout, int number, int align)
+uiLayout *uiLayoutColumnFlow(uiLayout *layout, int number, bool segmented)
 {
 	uiLayoutItemFlow *flow;
 
 	flow = MEM_callocN(sizeof(uiLayoutItemFlow), "uiLayoutItemFlow");
 	flow->litem.item.type = ITEM_LAYOUT_COLUMN_FLOW;
 	flow->litem.root = layout->root;
-	flow->litem.align = align;
+	flow->litem.align = segmented;
 	flow->litem.active = true;
 	flow->litem.enabled = true;
 	flow->litem.context = layout->context;
@@ -2769,14 +2772,14 @@ uiLayout *uiLayoutListBox(uiLayout *layout, uiList *ui_list, PointerRNA *ptr, Pr
 	return (uiLayout *)box;
 }
 
-uiLayout *uiLayoutAbsolute(uiLayout *layout, int align)
+uiLayout *uiLayoutAbsolute(uiLayout *layout, bool segmented)
 {
 	uiLayout *litem;
 
 	litem = MEM_callocN(sizeof(uiLayout), "uiLayoutAbsolute");
 	litem->item.type = ITEM_LAYOUT_ABSOLUTE;
 	litem->root = layout->root;
-	litem->align = align;
+	litem->align = segmented;
 	litem->active = 1;
 	litem->enabled = 1;
 	litem->context = layout->context;
@@ -2816,14 +2819,14 @@ uiLayout *uiLayoutOverlap(uiLayout *layout)
 	return litem;
 }
 
-uiLayout *uiLayoutSplit(uiLayout *layout, float percentage, int align)
+uiLayout *uiLayoutSplit(uiLayout *layout, float percentage, bool segmented)
 {
 	uiLayoutItemSplit *split;
 
 	split = MEM_callocN(sizeof(uiLayoutItemSplit), "uiLayoutItemSplit");
 	split->litem.item.type = ITEM_LAYOUT_SPLIT;
 	split->litem.root = layout->root;
-	split->litem.align = align;
+	split->litem.align = segmented;
 	split->litem.active = true;
 	split->litem.enabled = true;
 	split->litem.context = layout->context;

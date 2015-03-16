@@ -325,7 +325,7 @@ static int round_box_shadow_edges(float (*vert)[2], const rcti *rect, float rad,
 }
 
 /* this call has 1 extra arg to allow mask outline */
-static void round_box__edges(uiWidgetBase *wt, int roundboxalign, const rcti *rect, float rad, float radi)
+static void round_box__edges(uiWidgetBase *wt, uiCorner roundboxalign, const rcti *rect, float rad, float radi)
 {
 	float vec[WIDGET_CURVE_RESOLU][2], veci[WIDGET_CURVE_RESOLU][2];
 	float minx = rect->xmin, miny = rect->ymin, maxx = rect->xmax, maxy = rect->ymax;
@@ -3527,9 +3527,9 @@ static uiWidgetType *widget_type(uiWidgetTypeEnum type)
 }
 
 
-static int widget_roundbox_set(uiBut *but, rcti *rect)
+static uiCorner widget_roundbox_set(uiBut *but, rcti *rect)
 {
-	int roundbox = UI_CNR_ALL;
+	uiCorner roundbox = UI_CNR_ALL;
 
 	/* alignment */
 	if ((but->drawflag & UI_BUT_ALIGN) && but->type != UI_BTYPE_PULLDOWN) {
@@ -3804,7 +3804,8 @@ void ui_draw_but(const bContext *C, ARegion *ar, uiStyle *style, uiBut *but, rct
 	
 	if (wt) {
 		//rcti disablerect = *rect; /* rect gets clipped smaller for text */
-		int roundboxalign, state;
+		uiCorner roundboxalign; 
+		int state;
 		bool disabled = false;
 		
 		roundboxalign = widget_roundbox_set(but, rect);
