@@ -1609,7 +1609,10 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 
 	}
 
-	if (y_ofs > BLI_rcti_size_y(&v2d->mask)) {
+
+	/* Scale tabs in case there are too many to fit in the row. In which case compressing each by the same proportion. 
+	 * Not doing if horizontal since we have more horizontal screen space anyway */
+	if (y_ofs > BLI_rcti_size_y(&v2d->mask) && !horizontal) {
 		scaletabs = (float)BLI_rcti_size_y(&v2d->mask) / (float)y_ofs;
 
 		for (pc_dyn = ar->panels_category.first; pc_dyn; pc_dyn = pc_dyn->next) {
