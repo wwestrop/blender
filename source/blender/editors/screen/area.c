@@ -1765,7 +1765,7 @@ void ED_region_panels(const bContext *C, ARegion *ar, bool vertical, const char 
 			em = (ar->type->prefsizex) ? 10 : 20; /* works out to 10*UI_UNIT_X or 20*UI_UNIT_X */
 		}
 		else {
-			w = UI_PANEL_WIDTH;
+			w = BLI_rctf_size_x(&v2d->cur);
 			em = (ar->type->prefsizex) ? 10 : 20;
 		}
 
@@ -1821,9 +1821,11 @@ void ED_region_panels(const bContext *C, ARegion *ar, bool vertical, const char 
 				else
 					panelContext = UI_LAYOUT_PANEL;
 
+
+				int widthOrHeight = w - 2 * style->panelspace;
 				panel->layout = UI_block_layout(
 				        block, UI_LAYOUT_VERTICAL, panelContext,
-				        style->panelspace, 0, w - 2 * style->panelspace, em, 0, style);
+						style->panelspace, 0, widthOrHeight, em, 0, style);
 
 				/* lay-out the panel (not draw per-se), populate it with buttons */
 				pt->draw(C, panel);
