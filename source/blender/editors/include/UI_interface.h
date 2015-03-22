@@ -938,6 +938,9 @@ void uiItemBooleanO(uiLayout *layout, const char *name, int icon, const char *op
 void uiItemIntO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, int value);
 void uiItemFloatO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, float value);
 void uiItemStringO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, const char *value);
+/** Creates a new button to invoke a defined operator (looked up by its name)
+*  \param layout The layout the new button will be injected into
+*  \param opname The name of the wmOperatorType, used to look up the function of this button */
 void operatorButton(uiLayout *layout, char *opname);
 
 PointerRNA uiItemFullO_ptr(uiLayout *layout, struct wmOperatorType *ot, const char *name, int icon, IDProperty *properties, int context, int flag);
@@ -955,7 +958,8 @@ void uiItemL(uiLayout *layout, const char *name, int icon); /* label */
 void uiItemLDrag(uiLayout *layout, struct PointerRNA *ptr, const char *name, int icon); /* label icon for dragging */
 void uiItemM(uiLayout *layout, struct bContext *C, const char *menuname, const char *name, int icon); /* menu */
 void uiItemV(uiLayout *layout, const char *name, int icon, int argval); /* value */
-void uiItemS(uiLayout *layout); /* separator */
+/** Separator */
+void uiItemS(uiLayout *layout);
 
 void uiItemMenuF(uiLayout *layout, const char *name, int icon, uiMenuCreateFunc func, void *arg);
 void uiItemMenuEnumO(uiLayout *layout, struct bContext *C, const char *opname, const char *propname, const char *name, int icon);

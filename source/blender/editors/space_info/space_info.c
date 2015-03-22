@@ -745,61 +745,84 @@ static void drawPanel(const struct bContext *C, struct Panel *p)
 }
 
 
-static void drawPanel_HomeStart(const struct bContext *C, struct Panel *p)
-{
+static void drawPanel_Home(const struct bContext *C, struct Panel *p)
+{	
+	uiLayout *row = uiLayoutRow(p->layout, false);
 
-	uiLayout *col = uiLayoutRow(p->layout, false);
+	/* "Start" group (basic file ops) */
+	operatorButton(row, "WM_OT_read_homefile");
+	operatorButton(row, "WM_OT_open_mainfile");
+	operatorButton(row, "WM_OT_save_mainfile");
+	uiItemS(row);
 
 
-	operatorButton(col, "WM_OT_read_homefile");
-	operatorButton(col, "WM_OT_open_mainfile");
-	operatorButton(col, "WM_OT_save_mainfile");
+	/* "Shapes" group */
+	operatorButton(row, "MESH_OT_primitive_plane_add");
+	operatorButton(row, "MESH_OT_primitive_cube_add");
+	operatorButton(row, "MESH_OT_primitive_circle_add");
+	operatorButton(row, "MESH_OT_primitive_uv_sphere_add");
+	operatorButton(row, "MESH_OT_primitive_ico_sphere_add");
+	operatorButton(row, "MESH_OT_primitive_cylinder_add");
+	operatorButton(row, "MESH_OT_primitive_cone_add");
+	operatorButton(row, "MESH_OT_primitive_torus_add");
+	operatorButton(row, "MESH_OT_primitive_grid_add");
+	operatorButton(row, "MESH_OT_primitive_monkey_add");
+	uiItemS(row);
 
+	/* "Curves" group */
+	operatorButton(row, "CURVE_OT_primitive_bezier_curve_add");
+	operatorButton(row, "CURVE_OT_primitive_bezier_circle_add");
+	operatorButton(row, "CURVE_OT_primitive_nurbs_curve_add");
+	operatorButton(row, "CURVE_OT_primitive_nurbs_circle_add");
+	operatorButton(row, "CURVE_OT_primitive_nurbs_path_add");
+	uiItemS(row);
+
+
+	/* "Lighting" group */
+	operatorButton(row, "OBJECT_OT_lamp_add");
 }
 
 
 
-static void drawPanel_HomeShapes(const struct bContext *C, struct Panel *p)
+static void drawPanel_Modelling(const struct bContext *C, struct Panel *p)
 {
-	uiLayout *col = uiLayoutRow(p->layout, false);
 
-	operatorButton(col, "MESH_OT_primitive_plane_add");
-	operatorButton(col, "MESH_OT_primitive_cube_add");
-	operatorButton(col, "MESH_OT_primitive_circle_add");
+	uiLayout *row = uiLayoutRow(p->layout, false);
 
-	operatorButton(col, "MESH_OT_primitive_uv_sphere_add");
-	operatorButton(col, "MESH_OT_primitive_ico_sphere_add");
+	/* "General" group */
+	operatorButton(row, "MESH_OT_subdivide");
+	operatorButton(row, "MESH_OT_merge");
+	operatorButton(row, "MESH_OT_reveal");
+	operatorButton(row, "MESH_OT_hide");
+	uiItemS(row);
 
-	operatorButton(col, "MESH_OT_primitive_cylinder_add");
-	operatorButton(col, "MESH_OT_primitive_cone_add");
-	operatorButton(col, "MESH_OT_primitive_torus_add");
 
-	operatorButton(col, "MESH_OT_primitive_grid_add");
-	operatorButton(col, "MESH_OT_primitive_monkey_add");
+	/* "Cut" group */
+	operatorButton(row, "MESH_OT_loopcut");
+	operatorButton(row, "MESH_OT_knife_cut");
+	uiItemS(row);
+
+
+	/* "Fill" group */
+	operatorButton(row, "MESH_OT_fill");
+	operatorButton(row, "MESH_OT_bridge_edge_loops");
+	operatorButton(row, "MESH_OT_fill_grid");
+	uiItemS(row);
+
 	
+	/* "Deform" / "Extrude" group */
+	operatorButton(row, "MESH_OT_spin");		// Or CURVE_OT_spin?
+	operatorButton(row, "MESH_OT_screw");
+	uiItemS(row);
+	
+	
+	/* "Edge" group */
+	operatorButton(row, "MESH_OT_mark_sharp");
+	operatorButton(row, "MESH_OT_edge_collapse");
+	operatorButton(row, "MESH_OT_bevel");
+	uiItemS(row);
+
 }
-
-static void drawPanel_HomeCurves(const struct bContext *C, struct Panel *p)
-{
-	uiLayout *col = uiLayoutRow(p->layout, false);
-
-	operatorButton(col, "CURVE_OT_primitive_bezier_curve_add");
-	operatorButton(col, "CURVE_OT_primitive_bezier_circle_add");
-
-	operatorButton(col, "CURVE_OT_primitive_nurbs_curve_add");
-	operatorButton(col, "CURVE_OT_primitive_nurbs_circle_add");
-	operatorButton(col, "CURVE_OT_primitive_nurbs_path_add");
-}
-
-
-static void drawPanel_HomeLighting(const struct bContext *C, struct Panel *p)
-{
-	uiLayout *col = uiLayoutRow(p->layout, false);
-
-	operatorButton(col, "OBJECT_OT_lamp_add");
-}
-
- 
 
 
 /* only called once, from space/spacetypes.c */
@@ -857,52 +880,23 @@ void ED_spacetype_info(void)
 
 
 	PanelType *pt;
-	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab - start panelType");
+	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab PanelType");
 	strcpy(pt->idname, "INFO_PT_Home_Start");
 	strcpy(pt->label, N_("Start"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel_HomeStart;
+	pt->draw = drawPanel_Home;
 	strcpy(pt->category, "Home");
 	pt->flag = PNL_NO_HEADER;
 	BLI_addtail(&art->paneltypes, pt);
 
-	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab - shapes panelType");
-	strcpy(pt->idname, "INFO_PT_Home_Shapes");
-	strcpy(pt->label, N_("Shapes"));
-	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel_HomeShapes;
-	strcpy(pt->category, "Home");
-	pt->flag = PNL_NO_HEADER;
-	BLI_addtail(&art->paneltypes, pt);
-
-	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab - lighting panelType");
-	strcpy(pt->idname, "INFO_PT_Home_Lighting");
-	strcpy(pt->label, N_("Lighting"));
-	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel_HomeLighting;
-	strcpy(pt->category, "Home");
-	pt->flag = PNL_NO_HEADER;
-	BLI_addtail(&art->paneltypes, pt);
-
-	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab - curves panelType");
-	strcpy(pt->idname, "INFO_PT_Home_Curves");
-	strcpy(pt->label, N_("Curves"));
-	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel_HomeCurves;
-	strcpy(pt->category, "Home");
-	pt->flag = PNL_NO_HEADER;
-	BLI_addtail(&art->paneltypes, pt);
-
-
-	pt = MEM_callocN(sizeof(PanelType), "ribbon modelling tab panelType");
+	pt = MEM_callocN(sizeof(PanelType), "ribbon modelling tab PanelType");
 	strcpy(pt->idname, "INFO_PT_Modelling");
 	strcpy(pt->label, N_("Modelling"));
 	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel;
+	pt->draw = drawPanel_Modelling;
 	strcpy(pt->category, "Modelling");
 	pt->flag = PNL_NO_HEADER;
 	BLI_addtail(&art->paneltypes, pt);
-
 
 	
 

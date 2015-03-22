@@ -1083,6 +1083,11 @@ void operatorButton(uiLayout *layout, char *opname)
 	WM_operator_properties_create_ptr(&ptr, ot);
 
 	uiItemFullO_ptr(layout, ot, ot->name, ot->icon, ptr.data, layout->root->opcontext, 0);
+
+
+	/* Retrieve the button added to the block in case we later want to manipulate it */
+	uiBut* but = (uiBut*)layout->root->block->buttons.last;
+
 }
 
 void uiItemBooleanO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, int value)
@@ -1096,6 +1101,7 @@ void uiItemBooleanO(uiLayout *layout, const char *name, int icon, const char *op
 	RNA_boolean_set(&ptr, propname, value);
 
 	uiItemFullO_ptr(layout, ot, name, icon, ptr.data, layout->root->opcontext, 0);
+
 }
 
 void uiItemIntO(uiLayout *layout, const char *name, int icon, const char *opname, const char *propname, int value)
@@ -1847,7 +1853,7 @@ void uiItemV(uiLayout *layout, const char *name, int icon, int argval)
 		uiDefButI(block, UI_BTYPE_BUT, argval, name, 0, 0, w, UI_UNIT_Y, retvalue, 0.0, 0.0, 0, -1, "");
 }
 
-/* separator item */
+/** separator item */
 void uiItemS(uiLayout *layout)
 {
 	uiBlock *block = layout->root->block;

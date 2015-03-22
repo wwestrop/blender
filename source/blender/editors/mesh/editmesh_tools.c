@@ -1451,6 +1451,7 @@ void MESH_OT_hide(wmOperatorType *ot)
 	ot->name = "Hide Selection";
 	ot->idname = "MESH_OT_hide";
 	ot->description = "Hide (un)selected vertices, edges or faces";
+	ot->icon = ICON_RESTRICT_VIEW_ON;
 	
 	/* api callbacks */
 	ot->exec = edbm_hide_exec;
@@ -1481,6 +1482,7 @@ void MESH_OT_reveal(wmOperatorType *ot)
 	ot->name = "Reveal Hidden";
 	ot->idname = "MESH_OT_reveal";
 	ot->description = "Reveal all hidden vertices, edges and faces";
+	ot->icon = ICON_RESTRICT_VIEW_OFF;
 	
 	/* api callbacks */
 	ot->exec = edbm_reveal_exec;
@@ -2124,6 +2126,7 @@ void MESH_OT_merge(wmOperatorType *ot)
 	ot->name = "Merge";
 	ot->description = "Merge selected vertices";
 	ot->idname = "MESH_OT_merge";
+	ot->icon = ICON_AUTOMERGE_ON;		// ICON_FULLSCREEN_EXIT;
 
 	/* api callbacks */
 	ot->exec = edbm_merge_exec;
