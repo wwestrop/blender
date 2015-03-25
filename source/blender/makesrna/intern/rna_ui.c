@@ -246,6 +246,11 @@ static StructRNA *rna_Panel_register(Main *bmain, ReportList *reports, void *dat
 	pt->draw = (have_function[1]) ? panel_draw : NULL;
 	pt->draw_header = (have_function[2]) ? panel_draw_header : NULL;
 
+	/* Hack: If a Python script is adding a panel to the "Info" region (this is the ribbon), prevent the panel header drawing */
+	if(!strncmp(dummypt.idname, "INFO_PT_", strlen("INFO_PT_"))) {
+		pt->flag = PNL_NO_HEADER;
+	}
+
 	/* XXX use "no header" flag for some ordering of panels until we have real panel ordering */
 	if (pt->flag & PNL_NO_HEADER) {
 		PanelType *pth = art->paneltypes.first;
