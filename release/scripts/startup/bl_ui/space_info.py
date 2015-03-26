@@ -18,7 +18,95 @@
 
 # <pep8 compliant>
 import bpy
-from bpy.types import Header, Menu
+from bpy.types import Header, Menu, Panel
+
+
+
+class INFO_PT_Ribbon_Home(Panel):
+    bl_category = "Home"
+    bl_context = ""
+    bl_label = "Home"
+    bl_space_type = 'INFO'
+    bl_region_type = 'TOOLS'
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row(align=True)
+
+        # "Start" group
+        row.operatorButton("WM_OT_read_homefile")
+        row.operatorButton("WM_OT_open_mainfile")
+        row.operatorButton("WM_OT_save_mainfile")
+        row.separator()
+
+        # "Shapes" group
+        row.operatorButton("MESH_OT_primitive_plane_add")
+        row.operatorButton("MESH_OT_primitive_cube_add")
+        row.operatorButton("MESH_OT_primitive_circle_add")
+        row.operatorButton("MESH_OT_primitive_uv_sphere_add")
+        row.operatorButton("MESH_OT_primitive_ico_sphere_add")
+        row.operatorButton("MESH_OT_primitive_cylinder_add")
+        row.operatorButton("MESH_OT_primitive_cone_add")
+        row.operatorButton("MESH_OT_primitive_torus_add")
+        row.operatorButton("MESH_OT_primitive_grid_add")
+        row.operatorButton( "MESH_OT_primitive_monkey_add")
+        row.separator()
+
+        #"Curves" group
+        row.operatorButton("CURVE_OT_primitive_bezier_curve_add")
+        row.operatorButton("CURVE_OT_primitive_bezier_circle_add")
+        row.operatorButton("CURVE_OT_primitive_nurbs_curve_add")
+        row.operatorButton("CURVE_OT_primitive_nurbs_circle_add")
+        row.operatorButton("CURVE_OT_primitive_nurbs_path_add")
+        row.separator()
+        
+        # "Lighting" group
+        row.operatorButton("OBJECT_OT_lamp_add")
+
+
+
+class INFO_PT_Ribbon_Modelling(Panel):
+    bl_category = "Modelling"
+    bl_context = ""
+    bl_label = "Modelling"
+    bl_space_type = 'INFO'
+    bl_region_type = 'TOOLS'
+
+    def draw(self, context):
+        layout = self.layout
+        
+        row = layout.row(align=True)
+        
+        # "General" group
+        row.operatorButton("MESH_OT_subdivide")
+        row.operatorButton("MESH_OT_merge")
+        row.operatorButton("MESH_OT_reveal")
+        row.operatorButton("MESH_OT_hide")
+        row.separator()
+
+        # "Cut" group
+        row.operatorButton("MESH_OT_loopcut")
+        row.operatorButton("MESH_OT_knife_cut")
+        row.separator()
+
+        # "Fill" group
+        row.operatorButton("MESH_OT_fill")
+        row.operatorButton("MESH_OT_bridge_edge_loops")
+        row.operatorButton("MESH_OT_fill_grid")
+        row.separator()
+
+        # "Deform" / "Extrude" group
+        row.operatorButton("MESH_OT_spin")
+        row.operatorButton("MESH_OT_screw")
+        row.separator()
+        
+        # "Edge" group
+        row.operatorButton("MESH_OT_mark_sharp")
+        row.operatorButton("MESH_OT_edge_collapse")
+        row.operatorButton("MESH_OT_bevel")
+        row.separator()
+
 
 
 class INFO_HT_header(Header):

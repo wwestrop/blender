@@ -84,11 +84,6 @@ static SpaceLink *info_new(const bContext *UNUSED(C))
 	ar->alignment = RGN_ALIGN_BOTTOM;
 
 
-
-
-
-
-
 	/* ribbon */
 	ar = MEM_callocN(sizeof(ARegion), "ribbon area for info");
 	BLI_addtail(&sinfo->regionbase, ar);
@@ -96,36 +91,8 @@ static SpaceLink *info_new(const bContext *UNUSED(C))
 	ar->alignment = RGN_ALIGN_TOP;
 	ar->sizex = 1000;
 	ar->sizey = 100;
-	//ar->winrct
-	//ar-> // regiondata, panels, do_draw, uiblocks
 
 
-
-
-
-
-
-	
-	/* main area */
-	/*ar = MEM_callocN(sizeof(ARegion), "main area for info");
-	
-	BLI_addtail(&sinfo->regionbase, ar);
-	ar->regiontype = RGN_TYPE_WINDOW;*/
-	
-	/* keep in sync with console */
-	//ar->v2d.scroll |= (V2D_SCROLL_RIGHT);
-	//ar->v2d.align |= V2D_ALIGN_NO_NEG_X | V2D_ALIGN_NO_NEG_Y; /* align bottom left */
-	//ar->v2d.keepofs |= V2D_LOCKOFS_X;
-	//ar->v2d.keepzoom = (V2D_LOCKZOOM_X | V2D_LOCKZOOM_Y | V2D_LIMITZOOM | V2D_KEEPASPECT);
-	//ar->v2d.keeptot = V2D_KEEPTOT_BOUNDS;
-	//ar->v2d.minzoom = ar->v2d.maxzoom = 1.0f;
-
-
-	ar->do_draw = 5;
-
-	/* for now, aspect ratio should be maintained, and zoom is clamped within sane default limits */
-	//ar->v2d.keepzoom = (V2D_KEEPASPECT|V2D_LIMITZOOM);
-	
 	return (SpaceLink *)sinfo;
 }
 
@@ -209,29 +176,6 @@ static void info_main_area_draw(const bContext *C, ARegion *ar)
 }
 
 
-static int fooButPoll(bContext *C, wmOperator *ot)
-{
-	return OPERATOR_RUNNING_MODAL;
-}
-
-static void fooButHandler(bContext *C, void *arg1, void *arg2) {
-	printf("gkgklf");
-}
-
-
-static void INFO_OT_dummyOp(wmOperatorType *ot)
-{
-	/* identifiers */
-	ot->name = "Foo the bar";
-	ot->description = "DDDDD";
-	ot->idname = "INFO_OT_dummyOp";
-
-	/* api callbacks */
-	ot->poll = fooButPoll;
-	ot->exec = fooButHandler;
-}
-
-
 static void info_operatortypes(void)
 {
 	WM_operatortype_append(FILE_OT_autopack_toggle);
@@ -257,7 +201,6 @@ static void info_operatortypes(void)
 	WM_operatortype_append(INFO_OT_report_delete);
 	WM_operatortype_append(INFO_OT_report_copy);
 
-	WM_operatortype_append(INFO_OT_dummyOp);
 }
 
 static void info_keymap(struct wmKeyConfig *keyconf)
@@ -374,303 +317,6 @@ static void recent_files_menu_register(void)
 #define IMASEL_BUTTONS_HEIGHT (UI_UNIT_Y * 2)
 #define IMASEL_BUTTONS_MARGIN (UI_UNIT_Y / 6)
 
-typedef struct uiBlock uiBlock;
-//
-//static void ribbon_panel_draw(const struct bContext *C, struct Panel *pt) {
-//
-//}
-//
-//static void ribbon_panel_register(ARegionType *art)
-//{
-//	PanelType *pt;
-//
-//	pt = MEM_callocN(sizeof(PanelType), "spacetype file system directories");
-//	strcpy(pt->idname, "FILE_PT_system");
-//	strcpy(pt->label, N_("System"));
-//	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-//	pt->draw = ribbon_panel_draw;
-//	BLI_addtail(&art->paneltypes, pt);
-//}
-
-
-static void block_func_draw_check(bContext *C, void *UNUSED(arg1), void *UNUSED(arg2))
-{
-	//SpaceFile *sfile = CTX_wm_space_file(C);
-	SpaceInfo *ssss = CTX_wm_space_info(C);
-	//wmOperator *op = sfile->op;
-	//if (op) { /* fail on reload */
-	//	if (op->type->check) {
-	//		char filepath[FILE_MAX];
-	//		file_sfile_to_operator(op, sfile, filepath);
-
-	//		/* redraw */
-	//		if (op->type->check(C, op)) {
-	//			file_operator_to_sfile(sfile, op);
-
-	//			/* redraw, else the changed settings wont get updated */
-	//			ED_area_tag_redraw(CTX_wm_area(C));
-	//		}
-	//	}
-	//}
-}
-
-
-
-
-
-/* Note: This function uses pixelspace (0, 0, winx, winy), not view2d.
-* The controls are laid out as follows:
-*
-* -------------------------------------------
-* | Directory input               | execute |
-* -------------------------------------------
-* | Filename input        | + | - | cancel  |
-* -------------------------------------------
-*
-* The input widgets will stretch to fill any excess space.
-* When there isn't enough space for all controls to be shown, they are
-* hidden in this order: x/-, execute/cancel, input widgets.
-*/
-static void info_draw_ribbon_buttons(const bContext *C, ARegion *ar)
-{
-
-
-	ED_region_panels(C, ar, 1, CTX_data_mode_string(C), -1);
-
-	return;
-
-
-
-
-	/* Button layout. */
-	//const int max_x = ar->winx - 10;
-	//const int line1_y = ar->winy - (IMASEL_BUTTONS_HEIGHT / 2 + IMASEL_BUTTONS_MARGIN);
-	//const int line2_y = line1_y - (IMASEL_BUTTONS_HEIGHT / 2 + IMASEL_BUTTONS_MARGIN);
-	//const int input_minw = 20;
-	const int btn_h = UI_UNIT_Y;
-	const int btn_fn_w = UI_UNIT_X;
-	const int btn_minw = 80;
-	//const int btn_margin = 20;
-	//const int separator = 4;
-
-	/* Additional locals. */
-	char uiblockstr[32];
-	int loadbutton;
-	int fnumbuttons;
-	int min_x = 10;
-	int chan_offs = 0;
-	//int available_w = max_x - min_x;
-	//int line1_w = available_w;
-	//int line2_w = available_w;
-
-	uiBut *but;
-	uiBlock *block;
-	ARegion *artmp;
-
-	/* Initialize UI block. */
-	BLI_snprintf(uiblockstr, sizeof(uiblockstr), "win %p", (void *)ar);
-	block = UI_block_begin(C, ar, uiblockstr, UI_EMBOSS);
-	
-
-	/* exception to make space for collapsed region icon */
-	/*for (artmp = CTX_wm_area(C)->regionbase.first; artmp; artmp = artmp->next) {
-		if (artmp->regiontype == RGN_TYPE_CHANNELS && artmp->flag & RGN_FLAG_HIDDEN) {
-			chan_offs = 16;
-			min_x += chan_offs;
-			available_w -= chan_offs;
-		}
-	}*/
-
-	/* Is there enough space for the execute / cancel buttons? */
-
-
-	//const uiFontStyle *fstyle = UI_FSTYLE_WIDGET;
-	//loadbutton = UI_fontstyle_string_width(fstyle, "foooooo000") + btn_margin;
-	//CLAMP_MIN(loadbutton, btn_minw);
-	//if (available_w <= loadbutton + separator + input_minw) {
-	//	loadbutton = 0;
-	//}
-
-	//if (loadbutton) {
-	//	line1_w -= (loadbutton + separator);
-	//	line2_w = line1_w;
-	//}
-
-	///* Is there enough space for file number increment/decrement buttons? */
-	//fnumbuttons = 2 * btn_fn_w;
-	//if (!loadbutton || line2_w <= fnumbuttons + separator + input_minw) {
-	//	fnumbuttons = 0;
-	//}
-	//else {
-	//	line2_w -= (fnumbuttons + separator);
-	//}
-
-	/* Text input fields for directory and file. */
-	//if (available_w > 0) {
-	//	int overwrite_alert = file_draw_check_exists(sfile);
-	//	/* callbacks for operator check functions */
-	UI_block_func_set(block, block_func_draw_check, NULL, NULL);
-
-	//	but = uiDefBut(block, UI_BTYPE_TEXT, -1, "",
-	//		min_x, line1_y, line1_w - chan_offs, btn_h,
-	//		params->dir, 0.0, (float)FILE_MAX, 0, 0,
-	//		TIP_("File path"));
-	//	UI_but_func_complete_set(but, autocomplete_directory, NULL);
-	//	UI_but_flag_enable(but, UI_BUT_NO_UTF8);
-	//	UI_but_flag_disable(but, UI_BUT_UNDO);
-	//	UI_but_funcN_set(but, file_directory_enter_handle, NULL, but);
-
-	//	/* TODO, directory editing is non-functional while a library is loaded
-	//	* until this is properly supported just disable it. */
-	//	if (sfile->files && filelist_lib(sfile->files))
-	//		UI_but_flag_enable(but, UI_BUT_DISABLED);
-
-	//	if ((params->flag & FILE_DIRSEL_ONLY) == 0) {
-	//		but = uiDefBut(block, UI_BTYPE_TEXT, -1, "",
-	//			min_x, line2_y, line2_w - chan_offs, btn_h,
-	//			params->file, 0.0, (float)FILE_MAXFILE, 0, 0,
-	//			TIP_(overwrite_alert ? N_("File name, overwrite existing") : N_("File name")));
-	//		UI_but_func_complete_set(but, autocomplete_file, NULL);
-	//		UI_but_flag_enable(but, UI_BUT_NO_UTF8);
-	//		UI_but_flag_disable(but, UI_BUT_UNDO);
-	//		/* silly workaround calling NFunc to ensure this does not get called
-	//		* immediate ui_apply_but_func but only after button deactivates */
-	//		UI_but_funcN_set(but, file_filename_enter_handle, NULL, but);
-
-	//		/* check if this overrides a file and if the operator option is used */
-	//		if (overwrite_alert) {
-	//			UI_but_flag_enable(but, UI_BUT_REDALERT);
-	//		}
-	//	}
-
-
-
-
-	//UI_panel_category_draw_all
-
-
-
-
-	//	/* clear func */
-	UI_block_func_set(block, NULL, NULL, NULL);
-
-	//}
-
-
-
-	UI_block_align_begin(block);
-
-
-	/*but = uiDefIconBut(block, UI_BTYPE_BUT, 5, ICON_OOPS, 20, 100, 300, 40, "don't know what this is supposed to be a pointer to.....", 30, 50, 33, 33, "my info tooltip");
-	UI_but_func_set(but, fooButHandler, NULL, NULL);
-	ui_but_update(but);*/
-
-
-
-	//but = uiDefButO(block, UI_BTYPE_BUT, "FILE_OT_execute", WM_OP_INVOKE_DEFAULT, "title", 50, 50, 500, 40, "tipppppy");
-	but = uiDefButO(block, UI_BTYPE_BUT, "INFO_OT_dummyOp", WM_OP_INVOKE_DEFAULT, "title", 50, 50, 500, 40, "tipppppy");
-	UI_but_func_set(but, fooButHandler, NULL, NULL);
-	UI_but_funcN_set(but, fooButHandler, NULL, NULL);
-	UI_but_func_complete_set(but, fooButHandler, NULL);
-	UI_but_flag_enable(but, UI_BUT_UNDO);
-	UI_but_flag_enable(but, UI_BUT_NO_UTF8);
-	
-	// UI_but_func_complete_set(but, autocomplete_directory, NULL);
-	//	UI_but_flag_enable(but, UI_BUT_NO_UTF8);
-	//	UI_but_flag_disable(but, UI_BUT_UNDO);
-	//	UI_but_funcN_set(but, file_directory_enter_handle, NULL, but);
-	
-
-
-	//
-
-	/* Filename number increment / decrement buttons. */
-	//if (fnumbuttons && (params->flag & FILE_DIRSEL_ONLY) == 0) {
-		//
-		but = uiDefIconButO(block, UI_BTYPE_BUT, "INFO_OT_dummyOp", 0, ICON_ZOOMOUT,
-			10, 10,
-			70, 30,
-			TIP_("Decrement the filename number"));
-		RNA_int_set(UI_but_operator_ptr_get(but), "increment", -1);
-		//UI_but_func_set(but, fooButHandler, NULL, NULL);
-
-		but = uiDefIconButO(block, UI_BTYPE_BUT, "INFO_OT_dummyOp", 0, ICON_ZOOMIN,
-			80, 10,
-			70, 30,
-			TIP_("Increment the filename number"));
-		RNA_int_set(UI_but_operator_ptr_get(but), "increment", 1);
-	
-		
-		UI_block_align_end(block);
-
-		//BLI_addhead(&ar->uiblocks, block);
-	//}
-
-	/* Execute / cancel buttons. */
-	//if (loadbutton) {
-	//	/* params->title is already translated! */
-	//	uiDefButO(block, UI_BTYPE_BUT, "FILE_OT_execute", WM_OP_EXEC_REGION_WIN, params->title,
-	//		max_x - loadbutton, line1_y, loadbutton, btn_h, "");
-	//	uiDefButO(block, UI_BTYPE_BUT, "FILE_OT_cancel", WM_OP_EXEC_REGION_WIN, IFACE_("Cancel"),
-	//		max_x - loadbutton, line2_y, loadbutton, btn_h, "");
-	//}
-
-	UI_block_end(C, block);
-	UI_block_draw(C, block);
-}
-
-
-static void info_ribbon_draw(const bContext *C, ARegion *ar)
-{
-	float col[3];
-	/* clear */
-	UI_GetThemeColor3fv(TH_BACK, col);
-	glClearColor(col[0], col[1], col[2], 0.0);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	/* scrolling here is just annoying, disable it */
-	ar->v2d.cur.ymax = BLI_rctf_size_y(&ar->v2d.cur);
-	ar->v2d.cur.ymin = 0;
-
-	/* set view2d view matrix for scrolling (without scrollers) */
-	UI_view2d_view_ortho(&ar->v2d);
-
-
-
-
-	info_draw_ribbon_buttons(C, ar);
-
-
-
-	/* Boilerplate */
-	UI_view2d_view_restore(C);
-}
-
-
-
-
-
-
-/** I DON'T EVEN KNOW WHAT THIS DOES!!!!!! I added it as a listener for the region, hoping that makes my buttons get picked up!!!!!!!!!!!!! */
-static void file_ui_area_listener(bScreen *UNUSED(sc), ScrArea *UNUSED(sa), ARegion *ar, wmNotifier *wmn)
-{
-	/* context changes */
-	switch (wmn->category) {
-	case NC_SPACE:
-		switch (wmn->data) {
-		case ND_SPACE_FILE_LIST:
-			ED_region_tag_redraw(ar);
-			break;
-		}
-		break;
-	}
-}
-
-
-
-
-
-
 
 
 
@@ -691,29 +337,16 @@ static void info_ribbon_area_init(wmWindowManager *wm, ARegion *ar) {
 }
 
 
-
-
-
-
-
-
-
-/* tabbed panel stuff */
 static void view3d_buttons_area_listener(bScreen *UNUSED(sc), ScrArea *UNUSED(sa), ARegion *ar, wmNotifier *wmn) {
-
+	// TODO work out the purpose of this listener function
 }
+
 
 static void ribbon_tabs_init(wmWindowManager *wm, ARegion *ar)
 {
 	wmKeyMap *keymap;
 
-
-
 	ar->regiontype = RGN_TYPE_TOOLS;			// When the region is constructed, setting this on it forces its panels to be drawn as tabs
-
-
-
-
 
 	ED_region_panels_init(wm, ar);
 
@@ -724,104 +357,6 @@ static void ribbon_tabs_init(wmWindowManager *wm, ARegion *ar)
 static void ribbon_tabs_draw(const bContext *C, ARegion *ar)
 {
 	ED_region_panels(C, ar, false, CTX_data_mode_string(C), -1);
-}
-
-static void butHandler(struct bContext *C, void *arg1, void *arg2)
-{
-	printf("button pressed");
-}
-
-static void drawPanel(const struct bContext *C, struct Panel *p) 
-{
-	// draw the contents of the tab
-
-	uiLayout *col = uiLayoutRow(p->layout, false);
-
-	//col = uiLayoutColumnFlow(p->layout, 6, UI_LAYOUT_ALIGN_LEFT);
-	uiLayout *foo = uiLayoutGetBlock(p->layout);
-	//uiLayout *foo = uiLayoutRow(p->layout, RGN_ALIGN_BOTTOM);
-	uiBut *but = uiDefButO(foo, UI_BTYPE_BUT, "INFO_OT_dummyOp", CTX_data_mode_string(C), "strr", 30, 30, 150, 60, "tippp");
-
-}
-
-
-static void drawPanel_Home(const struct bContext *C, struct Panel *p)
-{	
-	uiLayout *row = uiLayoutRow(p->layout, false);
-
-	/* "Start" group (basic file ops) */
-	operatorButton(row, "WM_OT_read_homefile");
-	operatorButton(row, "WM_OT_open_mainfile");
-	operatorButton(row, "WM_OT_save_mainfile");
-	uiItemS(row);
-
-
-	/* "Shapes" group */
-	operatorButton(row, "MESH_OT_primitive_plane_add");
-	operatorButton(row, "MESH_OT_primitive_cube_add");
-	operatorButton(row, "MESH_OT_primitive_circle_add");
-	operatorButton(row, "MESH_OT_primitive_uv_sphere_add");
-	operatorButton(row, "MESH_OT_primitive_ico_sphere_add");
-	operatorButton(row, "MESH_OT_primitive_cylinder_add");
-	operatorButton(row, "MESH_OT_primitive_cone_add");
-	operatorButton(row, "MESH_OT_primitive_torus_add");
-	operatorButton(row, "MESH_OT_primitive_grid_add");
-	operatorButton(row, "MESH_OT_primitive_monkey_add");
-	uiItemS(row);
-
-	/* "Curves" group */
-	operatorButton(row, "CURVE_OT_primitive_bezier_curve_add");
-	operatorButton(row, "CURVE_OT_primitive_bezier_circle_add");
-	operatorButton(row, "CURVE_OT_primitive_nurbs_curve_add");
-	operatorButton(row, "CURVE_OT_primitive_nurbs_circle_add");
-	operatorButton(row, "CURVE_OT_primitive_nurbs_path_add");
-	uiItemS(row);
-
-
-	/* "Lighting" group */
-	operatorButton(row, "OBJECT_OT_lamp_add");
-}
-
-
-
-static void drawPanel_Modelling(const struct bContext *C, struct Panel *p)
-{
-
-	uiLayout *row = uiLayoutRow(p->layout, false);
-
-	/* "General" group */
-	operatorButton(row, "MESH_OT_subdivide");
-	operatorButton(row, "MESH_OT_merge");
-	operatorButton(row, "MESH_OT_reveal");
-	operatorButton(row, "MESH_OT_hide");
-	uiItemS(row);
-
-
-	/* "Cut" group */
-	operatorButton(row, "MESH_OT_loopcut");
-	operatorButton(row, "MESH_OT_knife_cut");
-	uiItemS(row);
-
-
-	/* "Fill" group */
-	operatorButton(row, "MESH_OT_fill");
-	operatorButton(row, "MESH_OT_bridge_edge_loops");
-	operatorButton(row, "MESH_OT_fill_grid");
-	uiItemS(row);
-
-	
-	/* "Deform" / "Extrude" group */
-	operatorButton(row, "MESH_OT_spin");		// Or CURVE_OT_spin?
-	operatorButton(row, "MESH_OT_screw");
-	uiItemS(row);
-	
-	
-	/* "Edge" group */
-	operatorButton(row, "MESH_OT_mark_sharp");
-	operatorButton(row, "MESH_OT_edge_collapse");
-	operatorButton(row, "MESH_OT_bevel");
-	uiItemS(row);
-
 }
 
 
@@ -865,9 +400,7 @@ void ED_spacetype_info(void)
 	BLI_addhead(&st->regiontypes, art);
 
 
-
-
-	/* tabbed toolbar (that's what I hope) */
+	/* Area containing tabs of panels (i.e. the tool ribbon) */
 	art = MEM_callocN(sizeof(ARegionType), "spacetype view3d tools region");
 	art->regionid = RGN_TYPE_TOOLS;
 	art->prefsizex = 160; /* XXX */
@@ -877,27 +410,6 @@ void ED_spacetype_info(void)
 	art->init = ribbon_tabs_init;
 	art->draw = ribbon_tabs_draw;
 	BLI_addhead(&st->regiontypes, art);
-
-
-	PanelType *pt;
-	pt = MEM_callocN(sizeof(PanelType), "ribbon home tab PanelType");
-	strcpy(pt->idname, "INFO_PT_Home_Start");
-	strcpy(pt->label, N_("Start"));
-	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel_Home;
-	strcpy(pt->category, "Home");
-	pt->flag = PNL_NO_HEADER;
-	BLI_addtail(&art->paneltypes, pt);
-
-	pt = MEM_callocN(sizeof(PanelType), "ribbon modelling tab PanelType");
-	strcpy(pt->idname, "INFO_PT_Modelling");
-	strcpy(pt->label, N_("Modelling"));
-	strcpy(pt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
-	pt->draw = drawPanel_Modelling;
-	strcpy(pt->category, "Modelling");
-	pt->flag = PNL_NO_HEADER;
-	BLI_addtail(&art->paneltypes, pt);
-
 	
 
 	recent_files_menu_register();
