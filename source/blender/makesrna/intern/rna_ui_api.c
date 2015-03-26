@@ -175,6 +175,13 @@ static void rna_uiItemPointerR(uiLayout *layout, struct PointerRNA *ptr, const c
 	uiItemPointerR(layout, ptr, propname, searchptr, searchpropname, name, icon);
 }
 
+
+/** Invoked from Python in order to add a ribbon-y button */
+static void rna_operatorButton(uiLayout *layout, const char *opname)
+{
+	operatorButton(layout, opname);
+}
+
 static PointerRNA rna_uiItemO(uiLayout *layout, const char *opname, const char *name, const char *text_ctxt,
                               int translate, int icon, int emboss, int icon_value)
 {
@@ -412,6 +419,11 @@ static void api_ui_item_rna_common(FunctionRNA *func)
 	RNA_def_property_flag(parm, PROP_REQUIRED);
 }
 
+/** The setup performed in this function declares the function signatures available to the 
+  * Python API, their arguments, return types, etc, etc. 
+  * \remarks 
+		This file is used as part of the build process by makesrna. This auto-generates 
+		some name-mangled C files. Example one being rna_ui_gen.c */
 void RNA_api_ui_layout(StructRNA *srna)
 {
 	FunctionRNA *func;
@@ -562,6 +574,16 @@ void RNA_api_ui_layout(StructRNA *srna)
 	RNA_def_property_flag(parm, PROP_REQUIRED | PROP_RNAPTR);
 	RNA_def_function_return(func, parm);
 	RNA_def_function_ui_description(func, "Item. Places a button into the layout to call an Operator");
+
+
+
+	/* Declares a function callable from Python that will place a button into the ribbon, taking only the operator name */
+	func = RNA_def_function(srna, "operatorButton", "rna_operatorButton");
+	parm = RNA_def_string(func, "operator_idname", NULL, 0, "", "Identifier of the operator");
+	RNA_def_property_flag(parm, PROP_REQUIRED);
+	RNA_def_function_ui_description(func, "Places a button that calls an operator into the layout. Drawn ribbon-y");
+
+
 
 	func = RNA_def_function(srna, "operator_enum", "uiItemsEnumO");
 	parm = RNA_def_string(func, "operator", NULL, 0, "", "Identifier of the operator");
