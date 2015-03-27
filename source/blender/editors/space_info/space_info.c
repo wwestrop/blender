@@ -375,7 +375,9 @@ void ED_spacetype_info(void)
 	st->duplicate = info_duplicate;
 	st->operatortypes = info_operatortypes;
 	st->keymap = info_keymap;
-	
+	st->preventRegionSplitting = true;
+
+
 	/* regions: main window */
 	/*art = MEM_callocN(sizeof(ARegionType), "spacetype info region");
 	art->regionid = RGN_TYPE_WINDOW;

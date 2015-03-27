@@ -482,6 +482,7 @@ void ED_region_do_draw(bContext *C, ARegion *ar)
 
 	ED_region_draw_cb_draw(C, ar, REGION_DRAW_POST_PIXEL);
 
+	/* Draw the diagonal widgets in the corners of each region that allow the user to split the region */
 	region_draw_azones(sa, ar);
 
 	/* for debugging unneeded area redraws and partial redraw */
@@ -1392,8 +1393,10 @@ void ED_area_initialize(wmWindowManager *wm, wmWindow *win, ScrArea *sa)
 	/* area sizes */
 	area_calc_totrct(sa, WM_window_pixels_x(win), WM_window_pixels_y(win));
 	
-	/* clear all azones, add the area triange widgets */
-	area_azone_initialize(win, win->screen, sa);
+	/* clear all azones, add the area triange widgets (if this spaceType hasn't opted out of being splitable/resizeable) */
+	if (!sa->type->preventRegionSplitting) {
+		area_azone_initialize(win, win->screen, sa);
+	}
 
 	/* region rect sizes */
 	rect = sa->totrct;

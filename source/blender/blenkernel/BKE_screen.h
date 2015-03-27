@@ -109,6 +109,9 @@ typedef struct SpaceType {
 	
 	/* default keymaps to add */
 	int keymapflag;
+
+	/** Governs whether or not diagonal split/resize grips are added to the corners of this screen area. Default is true. */
+	bool preventRegionSplitting;
 	
 } SpaceType;
 
