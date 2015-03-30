@@ -618,6 +618,10 @@ static void area_azone_initialize(wmWindow *win, bScreen *screen, ScrArea *sa)
 		return;
 	}
 
+	if (sa->type->preventRegionSplitting) {
+		return;
+	}
+
 	/* can't click on bottom corners on OS X, already used for resizing */
 #ifdef __APPLE__
 	if (!(sa->totrct.xmin == 0 && sa->totrct.ymin == 0) || WM_window_is_fullscreen(win))
@@ -1394,9 +1398,8 @@ void ED_area_initialize(wmWindowManager *wm, wmWindow *win, ScrArea *sa)
 	area_calc_totrct(sa, WM_window_pixels_x(win), WM_window_pixels_y(win));
 	
 	/* clear all azones, add the area triange widgets (if this spaceType hasn't opted out of being splitable/resizeable) */
-	if (!sa->type->preventRegionSplitting) {
-		area_azone_initialize(win, win->screen, sa);
-	}
+	area_azone_initialize(win, win->screen, sa);
+
 
 	/* region rect sizes */
 	rect = sa->totrct;
