@@ -834,8 +834,31 @@ static int ui_but_draw_menu_icon(const uiBut *but)
 	return (but->flag & UI_BUT_ICON_SUBMENU) && (but->dt == UI_EMBOSS_PULLDOWN);
 }
 
-/* icons have been standardized... and this call draws in untransformed coordinates */
 
+/** Where the icon needs drawing for a ribbon button, calculates the origin position for that icon
+  *
+  * \param but The button being drawn
+  * \param iconAspect The scale factor (ribbon icons are 2x, aspect = 0.5) 
+  * \param[out] x The calculated x origin will be output here
+  * \param[out] y The calculated y origin will be output here */
+static void get_ribbon_icon_position(uiBut *but, float iconAspect, float *x, float *y)
+{
+
+	if (!(but->drawflag & UI_BUT_RIBBON_VISUAL)) {
+		// Not a ribbon button, leave x and y as they are
+		return;
+	}
+
+
+	int iconSize = ICON_DEFAULT_HEIGHT / iconAspect;
+	int buttonWidth = BLI_rctf_size_x(&but->rect);
+
+	*x = ((buttonWidth - iconSize) / 2) + but->rect.xmin;
+	*y = but->rect.ymax - UI_TEXT_MARGIN_X * U.widget_unit;
+
+}
+
+/* icons have been standardized... and this call draws in untransformed coordinates */
 static void widget_draw_icon(const uiBut *but, BIFIconID icon, float alpha, const rcti *rect,
                              const bool show_menu_icon)
 {
@@ -853,6 +876,11 @@ static void widget_draw_icon(const uiBut *but, BIFIconID icon, float alpha, cons
 	if (icon == ICON_BLANK1 && (but->flag & UI_BUT_ICON_SUBMENU) == 0) return;
 	
 	aspect = but->block->aspect / UI_DPI_FAC;
+
+	if (but->drawflag & UI_BUT_RIBBON_VISUAL) {
+		aspect /= 2.0f;				/* Ribbon icons drawn at double size */
+	}
+
 	height = ICON_DEFAULT_HEIGHT / aspect;
 
 	/* calculate blend color */
@@ -900,6 +928,7 @@ static void widget_draw_icon(const uiBut *but, BIFIconID icon, float alpha, cons
 			UI_icon_draw_aspect_color(xs, ys, icon, aspect, rgb);
 		}
 		else
+			get_ribbon_icon_position(but, aspect, &xs, &ys);		 /* If ribbon button, calculate the origin for the icon */
 			UI_icon_draw_aspect(xs, ys, icon, aspect, alpha);
 	}
 
