@@ -33,6 +33,7 @@ class INFO_PT_Ribbon_Home(Panel):
         layout = self.layout
 
         row = layout.row(align=True)
+        row.alignment = 'LEFT'
 
         # "Start" group
         row.operatorButton("WM_OT_read_homefile")
@@ -77,6 +78,7 @@ class INFO_PT_Ribbon_Modelling(Panel):
         layout = self.layout
         
         row = layout.row(align=True)
+        row.alignment = 'LEFT'
         
         # "General" group
         row.operatorButton("MESH_OT_subdivide")

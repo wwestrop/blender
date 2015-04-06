@@ -184,6 +184,16 @@ static const char *ui_item_name_add_colon(const char *name, char namestr[UI_MAX_
 	return name;
 }
 
+
+/** Output the size to present the given UI control
+  * \remark Returns width and height via the two input parameters. 
+  * \param item The amount of space we would like to consume in an ideal world
+
+  
+  if the items to fit are natively bigger than the available space, they are all shrunk proportionally.
+  If the items natively fit within the space, they are left with a gap at the end
+
+*/
 static int ui_item_fit(int item, int pos, int all, int available, bool is_last, int alignment, int *offset)
 {
 	if (offset)
@@ -1087,6 +1097,10 @@ void operatorButton(uiLayout *layout, char *opname)
 
 	/* Retrieve the button added to the block in case we later want to manipulate it */
 	uiBut* but = (uiBut*)layout->root->block->buttons.last;
+
+	but->rect.xmax = 80;
+	but->rect.ymax = 80;
+	but->drawflag |= UI_BUT_RIBBON_VISUAL;
 
 }
 
@@ -2007,6 +2021,7 @@ static int ui_litem_min_width(int itemw)
 	return MIN2(2 * UI_UNIT_X, itemw);
 }
 
+/** Takes a layout object containing a jumble full of items, and unjumbles them so that they form a row */
 static void ui_litem_layout_row(uiLayout *litem)
 {
 	uiItem *item;
@@ -2019,6 +2034,7 @@ static void ui_litem_layout_row(uiLayout *litem)
 	totw = 0;
 	tot = 0;
 
+	/* Sum up the (ideal) widths of everything we have in this row */
 	for (item = litem->items.first; item; item = item->next) {
 		ui_item_size(item, &itemw, &itemh);
 		totw += itemw;

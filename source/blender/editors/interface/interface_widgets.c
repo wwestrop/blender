@@ -1497,7 +1497,7 @@ static void widget_draw_text(uiFontStyle *fstyle, uiWidgetColors *wcol, uiBut *b
 	}
 }
 
-/* draws text and icons for buttons */
+/** draws text and icons for buttons */
 static void widget_draw_text_icon(uiFontStyle *fstyle, uiWidgetColors *wcol, uiBut *but, rcti *rect)
 {
 	const bool show_menu_icon = ui_but_draw_menu_icon(but);
@@ -1505,6 +1505,20 @@ static void widget_draw_text_icon(uiFontStyle *fstyle, uiWidgetColors *wcol, uiB
 	char password_str[UI_MAX_DRAW_STR];
 
 	ui_but_text_password_hide(password_str, but, false);
+
+	bool isRibbonButton = but->drawflag & UI_BUT_RIBBON_VISUAL;
+
+	/* Used when drawing ribbon buttons */
+	const float pad = UI_TEXT_MARGIN_X * U.widget_unit;
+	rcti textRect;
+	textRect.xmin = rect->xmin + pad;
+	textRect.xmax = rect->xmax - pad;
+	textRect.ymin = rect->ymin + pad;
+	textRect.ymax = textRect.ymin + BLF_ascender(fstyle->uifont_id);
+
+
+
+	/* ##### Draw the icon ##### */
 
 	/* check for button text label */
 	if (but->type == UI_BTYPE_MENU && (but->flag & UI_BUT_NODE_LINK)) {
@@ -1550,7 +1564,19 @@ static void widget_draw_text_icon(uiFontStyle *fstyle, uiWidgetColors *wcol, uiB
 		rect->xmax -= ICON_SIZE_FROM_BUTRECT(rect);
 	}
 
-	/* clip but->drawstr to fit in available space */
+
+
+
+	/* ##### Draw the text ##### */
+
+
+	if (isRibbonButton) {
+		// Swap the usual rect with the one we calculated for ribbon-buttons' text
+		rect = &textRect;
+	}
+
+
+	/* clip but->drawstr to fit in available space. str = actual string, draawstr = drawn string (with bits ellipsed out) */
 	if (but->editstr && but->pos >= 0) {
 		ui_text_clip_cursor(fstyle, but, rect);
 	}

@@ -210,6 +210,8 @@ enum {
 	UI_BUT_ALIGN_RIGHT       = (1 << 16),
 	UI_BUT_ALIGN_DOWN        = (1 << 17),
 	UI_BUT_ALIGN             = (UI_BUT_ALIGN_TOP | UI_BUT_ALIGN_LEFT | UI_BUT_ALIGN_RIGHT | UI_BUT_ALIGN_DOWN),
+	/** Draw with a "ribonny" visual style */
+	UI_BUT_RIBBON_VISUAL     = (1 << 18),
 };
 
 /* scale fixed button widths by this to account for DPI */
@@ -776,6 +778,7 @@ void UI_exit(void);
 #define UI_UNIT_X               ((void)0, U.widget_unit)
 #define UI_UNIT_Y               ((void)0, U.widget_unit)
 
+/** Controls added to a layout of this mode are proportionally stretched to fill all available space */
 #define UI_LAYOUT_ALIGN_EXPAND  0
 #define UI_LAYOUT_ALIGN_LEFT    1
 #define UI_LAYOUT_ALIGN_CENTER  2
