@@ -839,9 +839,10 @@ static int ui_but_draw_menu_icon(const uiBut *but)
   *
   * \param but The button being drawn
   * \param iconAspect The scale factor (ribbon icons are 2x, aspect = 0.5) 
+  * \param areaRect The rectangle the button is being drawn into (not the same as but->rect)
   * \param[out] x The calculated x origin will be output here
   * \param[out] y The calculated y origin will be output here */
-static void get_ribbon_icon_position(uiBut *but, float iconAspect, float *x, float *y)
+static void get_ribbon_icon_position(uiBut *but, rcti *areaRect, float iconAspect, float *x, float *y)
 {
 
 	if (!(but->drawflag & UI_BUT_RIBBON_VISUAL)) {
@@ -852,9 +853,10 @@ static void get_ribbon_icon_position(uiBut *but, float iconAspect, float *x, flo
 
 	int iconSize = ICON_DEFAULT_HEIGHT / iconAspect;
 	int buttonWidth = BLI_rctf_size_x(&but->rect);
+	int buttonHeight = BLI_rctf_size_y(&but->rect);
 
 	*x = ((buttonWidth - iconSize) / 2) + but->rect.xmin;
-	*y = but->rect.ymax - UI_TEXT_MARGIN_X * U.widget_unit;
+	*y = areaRect->ymin + buttonHeight - iconSize - UI_TEXT_MARGIN_X * U.widget_unit;
 
 }
 
@@ -928,7 +930,7 @@ static void widget_draw_icon(const uiBut *but, BIFIconID icon, float alpha, cons
 			UI_icon_draw_aspect_color(xs, ys, icon, aspect, rgb);
 		}
 		else
-			get_ribbon_icon_position(but, aspect, &xs, &ys);		 /* If ribbon button, calculate the origin for the icon */
+			get_ribbon_icon_position(but, rect, aspect, &xs, &ys);		 /* If ribbon button, calculate the origin for the icon */
 			UI_icon_draw_aspect(xs, ys, icon, aspect, alpha);
 	}
 
