@@ -78,7 +78,7 @@ wmKeyMap	*WM_keymap_guess_opname(const struct bContext *C, const char *opname);
 bool		 WM_keymap_remove(struct wmKeyConfig *keyconfig, struct wmKeyMap *keymap);
 
 wmKeyMapItem *WM_keymap_item_find_id(struct wmKeyMap *keymap, int id);
-int			WM_keymap_item_compare(struct wmKeyMapItem *k1, struct wmKeyMapItem *k2);
+bool		 WM_keymap_item_compare(struct wmKeyMapItem *k1, struct wmKeyMapItem *k2);
 
 /* Modal Keymap */
 

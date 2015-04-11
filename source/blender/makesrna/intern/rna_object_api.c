@@ -241,7 +241,7 @@ static PointerRNA rna_Object_shape_key_add(Object *ob, bContext *C, ReportList *
 	}
 }
 
-static int rna_Object_is_visible(Object *ob, Scene *sce)
+static bool rna_Object_is_visible(Object *ob, Scene *sce)
 {
 	return !(ob->restrictflag & OB_RESTRICT_VIEW) && (ob->lay & sce->lay);
 }
@@ -386,12 +386,12 @@ static void rna_ObjectBase_layers_from_view(Base *base, View3D *v3d)
 	base->lay = base->object->lay = v3d->lay;
 }
 
-static int rna_Object_is_modified(Object *ob, Scene *scene, int settings)
+static bool rna_Object_is_modified(Object *ob, Scene *scene, int settings)
 {
 	return BKE_object_is_modified(scene, ob) & settings;
 }
 
-static int rna_Object_is_deform_modified(Object *ob, Scene *scene, int settings)
+static bool rna_Object_is_deform_modified(Object *ob, Scene *scene, int settings)
 {
 	return BKE_object_is_deform_modified(scene, ob) & settings;
 }
@@ -434,7 +434,7 @@ void rna_Object_dm_info(struct Object *ob, int type, char *result)
 }
 #endif /* NDEBUG */
 
-static int rna_Object_update_from_editmode(Object *ob)
+static bool rna_Object_update_from_editmode(Object *ob)
 {
 	if (ob->mode & OB_MODE_EDIT) {
 		return ED_object_editmode_load(ob);

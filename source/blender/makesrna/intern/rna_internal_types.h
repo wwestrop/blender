@@ -224,7 +224,7 @@ typedef struct BoolPropertyRNA {
 	PropBooleanArrayGetFuncEx getarray_ex;
 	PropBooleanArraySetFuncEx setarray_ex;
 
-	int defaultvalue;
+	bool defaultvalue;
 	const int *defaultarray;
 } BoolPropertyRNA;
 

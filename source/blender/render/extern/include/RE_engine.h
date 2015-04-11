@@ -139,7 +139,7 @@ struct RenderResult *RE_engine_begin_result(RenderEngine *engine, int x, int y, 
 void RE_engine_update_result(RenderEngine *engine, struct RenderResult *result);
 void RE_engine_end_result(RenderEngine *engine, struct RenderResult *result, int cancel, int merge_results);
 
-int RE_engine_test_break(RenderEngine *engine);
+bool RE_engine_test_break(RenderEngine *engine);
 void RE_engine_update_stats(RenderEngine *engine, const char *stats, const char *info);
 void RE_engine_update_progress(RenderEngine *engine, float progress);
 void RE_engine_update_memory_stats(RenderEngine *engine, float mem_used, float mem_peak);

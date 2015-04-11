@@ -94,7 +94,7 @@ static void rna_Operator_enum_search_invoke(bContext *C, wmOperator *op)
 	
 }
 
-static int rna_event_modal_handler_add(struct bContext *C, struct wmOperator *operator)
+static bool rna_event_modal_handler_add(struct bContext *C, struct wmOperator *operator)
 {
 	return WM_event_add_modal_handler(C, operator) != NULL;
 }

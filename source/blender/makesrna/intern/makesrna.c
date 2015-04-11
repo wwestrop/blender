@@ -404,6 +404,7 @@ static const char *rna_type_type_name(PropertyRNA *prop)
 {
 	switch (prop->type) {
 		case PROP_BOOLEAN:
+			return "bool";
 		case PROP_INT:
 		case PROP_ENUM:
 			return "int";

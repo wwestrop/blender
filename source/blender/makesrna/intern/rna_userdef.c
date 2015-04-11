@@ -367,7 +367,7 @@ static void rna_UserDef_viewport_lights_update(Main *bmain, Scene *scene, Pointe
 	rna_userdef_update(bmain, scene, ptr);
 }
 
-static int rna_Scene_GPU_selection_supported(UserDef *UNUSED(U))
+static bool rna_Scene_GPU_selection_supported(UserDef *UNUSED(U))
 {
 	return GPU_select_query_check_support();
 }
