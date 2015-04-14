@@ -1085,8 +1085,11 @@ void uiItemEnumO_string(uiLayout *layout, const char *name, int icon, const char
  *  \param opname The name of the wmOperatorType, used to look up the function of this button */
 void operatorButton(uiLayout *layout, char *opname)
 {
-	wmOperatorType *ot = WM_operatortype_find(opname, 0); /* print error next */
+	wmOperatorType *ot;
 	PointerRNA ptr;
+	uiBut* but;
+
+	ot = WM_operatortype_find(opname, 0);
 
 	UI_OPERATOR_ERROR_RET(ot, opname, return);
 
@@ -1096,7 +1099,7 @@ void operatorButton(uiLayout *layout, char *opname)
 
 
 	/* Retrieve the button added to the block in case we later want to manipulate it */
-	uiBut* but = (uiBut*)layout->root->block->buttons.last;
+	but = (uiBut*)layout->root->block->buttons.last;
 
 	but->rect.xmax = 80;
 	but->rect.ymax = 80;

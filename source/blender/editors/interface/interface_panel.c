@@ -1436,26 +1436,24 @@ static void ui_panel_category_draw_tab(int mode, float minx, float miny, float m
 
 
 
-static rcti* getTabGutterRect(rcti mask_of_drawIntoRegion, int gutterSize, bool horizontal)
+static rcti getTabGutterRect(rcti mask_of_drawIntoRegion, int gutterSize, bool horizontal)
 {
-
-	rcti* rect = malloc(sizeof(rcti));
+	rcti rect;
 
 	if (horizontal) {
-		rect->xmin = mask_of_drawIntoRegion.xmin;
-		rect->ymin = mask_of_drawIntoRegion.ymax - gutterSize;
-		rect->xmax = mask_of_drawIntoRegion.xmax;
-		rect->ymax = mask_of_drawIntoRegion.ymax;
+		rect.xmin = mask_of_drawIntoRegion.xmin;
+		rect.ymin = mask_of_drawIntoRegion.ymax - gutterSize;
+		rect.xmax = mask_of_drawIntoRegion.xmax;
+		rect.ymax = mask_of_drawIntoRegion.ymax;
 	}
 	else {
-		rect->xmin = mask_of_drawIntoRegion.xmin;
-		rect->ymin = mask_of_drawIntoRegion.ymin;
-		rect->xmax = mask_of_drawIntoRegion.xmin + gutterSize;
-		rect->ymax = mask_of_drawIntoRegion.ymax;
+		rect.xmin = mask_of_drawIntoRegion.xmin;
+		rect.ymin = mask_of_drawIntoRegion.ymin;
+		rect.xmax = mask_of_drawIntoRegion.xmin + gutterSize;
+		rect.ymax = mask_of_drawIntoRegion.ymax;
 	}
 
 	return rect;
-
 }
 
 //
@@ -1534,7 +1532,7 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 
 
 
-
+	rcti gutterRect;
 	//horizontal = false;
 
 
@@ -1638,9 +1636,8 @@ void UI_panel_category_draw_all(ARegion *ar, const char *category_id_active, boo
 	}
 
 	// Draw tab gutter
-	rcti* gutterRect = getTabGutterRect(v2d->mask, category_tabs_width, horizontal);
-	glRecti(gutterRect->xmin, gutterRect->ymin, gutterRect->xmax, gutterRect->ymax);
-	free(gutterRect);
+	gutterRect = getTabGutterRect(v2d->mask, category_tabs_width, horizontal);
+	glRecti(gutterRect.xmin, gutterRect.ymin, gutterRect.xmax, gutterRect.ymax);
 
 	if (is_alpha) {
 		glDisable(GL_BLEND);

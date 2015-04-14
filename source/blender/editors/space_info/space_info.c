@@ -322,9 +322,10 @@ static void recent_files_menu_register(void)
 
 static void info_ribbon_area_init(wmWindowManager *wm, ARegion *ar) {
 
-	ED_region_panels_init(wm, ar);
-
 	wmKeyMap *keymap;
+
+
+	ED_region_panels_init(wm, ar);
 
 	/* force it on init, for old files, until it becomes config */
 	ar->v2d.scroll = (V2D_SCROLL_RIGHT);

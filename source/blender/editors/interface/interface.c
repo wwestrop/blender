@@ -3054,7 +3054,7 @@ void ui_block_cm_to_scene_linear_v3(uiBlock *block, float pixel[3])
  * - \a a2 Number of decimal point values to display. 0 defaults to 3 (0.000)
  *      1,2,3, and a maximum of 4, all greater values will be clamped to 4.
  */
-static uiBut *ui_def_but(uiBlock *block, int type, int retval, const char *str,
+static uiBut *ui_def_but(uiBlock *block, eButType type, int retval, const char *str,
                          int x, int y, short width, short height,
                          void *poin, float min, float max, float a1, float a2, const char *tip)
 {
@@ -3324,7 +3324,7 @@ static void ui_def_but_rna__menu(bContext *UNUSED(C), uiLayout *layout, void *bu
  * When this kind of change won't disrupt branches, best look into making more
  * of our UI functions take prop rather then propname.
  */
-static uiBut *ui_def_but_rna(uiBlock *block, int type, int retval, const char *str,
+static uiBut *ui_def_but_rna(uiBlock *block, eButType type, int retval, const char *str,
                              int x, int y, short width, short height,
                              PointerRNA *ptr, PropertyRNA *prop, int index,
                              float min, float max, float a1, float a2,  const char *tip)
@@ -3479,7 +3479,7 @@ static uiBut *ui_def_but_rna(uiBlock *block, int type, int retval, const char *s
 	return but;
 }
 
-static uiBut *ui_def_but_rna_propname(uiBlock *block, int type, int retval, const char *str, int x, int y, short width, short height, PointerRNA *ptr, const char *propname, int index, float min, float max, float a1, float a2,  const char *tip)
+static uiBut *ui_def_but_rna_propname(uiBlock *block, eButType type, int retval, const char *str, int x, int y, short width, short height, PointerRNA *ptr, const char *propname, int index, float min, float max, float a1, float a2,  const char *tip)
 {
 	PropertyRNA *prop = RNA_struct_find_property(ptr, propname);
 	uiBut *but;
@@ -3496,7 +3496,7 @@ static uiBut *ui_def_but_rna_propname(uiBlock *block, int type, int retval, cons
 	return but;
 }
 
-static uiBut *ui_def_but_operator_ptr(uiBlock *block, int type, wmOperatorType *ot, int opcontext, const char *str, int x, int y, short width, short height, const char *tip)
+static uiBut *ui_def_but_operator_ptr(uiBlock *block, eButType type, wmOperatorType *ot, int opcontext, const char *str, int x, int y, short width, short height, const char *tip)
 {
 	uiBut *but;
 
@@ -3525,7 +3525,7 @@ static uiBut *ui_def_but_operator_ptr(uiBlock *block, int type, wmOperatorType *
 	return but;
 }
 
-uiBut *uiDefBut(uiBlock *block, int type, int retval, const char *str, int x, int y, short width, short height, void *poin, float min, float max, float a1, float a2, const char *tip)
+uiBut *uiDefBut(uiBlock *block, eButType type, int retval, const char *str, int x, int y, short width, short height, void *poin, float min, float max, float a1, float a2, const char *tip)
 {
 	uiBut *but = ui_def_but(block, type, retval, str, x, y, width, height, poin, min, max, a1, a2, tip);
 
@@ -3754,7 +3754,7 @@ uiBut *uiDefIconButS(uiBlock *block, eButType type, int retval, int icon, int x,
 {
 	return uiDefIconBut(block, type | UI_BUT_POIN_SHORT, retval, icon, x, y, width, height, (void *) poin, min, max, a1, a2, tip);
 }
-uiBut *uiDefIconButBitS(uiBlock *block, int type, int bit, int retval, int icon, int x, int y, short width, short height, short *poin, float min, float max, float a1, float a2,  const char *tip)
+uiBut *uiDefIconButBitS(uiBlock *block, eButType type, int bit, int retval, int icon, int x, int y, short width, short height, short *poin, float min, float max, float a1, float a2,  const char *tip)
 {
 	return uiDefIconButBit(block, type | UI_BUT_POIN_SHORT, bit, retval, icon, x, y, width, height, (void *) poin, min, max, a1, a2, tip);
 }

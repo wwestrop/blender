@@ -845,15 +845,17 @@ static int ui_but_draw_menu_icon(const uiBut *but)
 static void get_ribbon_icon_position(uiBut *but, rcti *areaRect, float iconAspect, float *x, float *y)
 {
 
+	int iconSize, buttonWidth, buttonHeight;
+
 	if (!(but->drawflag & UI_BUT_RIBBON_VISUAL)) {
 		// Not a ribbon button, leave x and y as they are
 		return;
 	}
 
 
-	int iconSize = ICON_DEFAULT_HEIGHT / iconAspect;
-	int buttonWidth = BLI_rctf_size_x(&but->rect);
-	int buttonHeight = BLI_rctf_size_y(&but->rect);
+	iconSize = ICON_DEFAULT_HEIGHT / iconAspect;
+	buttonWidth = BLI_rctf_size_x(&but->rect);
+	buttonHeight = BLI_rctf_size_y(&but->rect);
 
 	*x = ((buttonWidth - iconSize) / 2) + but->rect.xmin;
 	*y = areaRect->ymin + buttonHeight - iconSize - UI_TEXT_MARGIN_X * U.widget_unit;

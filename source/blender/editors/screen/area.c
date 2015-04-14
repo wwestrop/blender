@@ -1820,6 +1820,7 @@ void ED_region_panels(const bContext *C, ARegion *ar, bool vertical, const char 
 
 			if (open) {
 				short panelContext;
+				int widthOrHeight = w - 2 * style->panelspace;
 
 				/* panel context can either be toolbar region or normal panels region */
 				if (ar->regiontype == RGN_TYPE_TOOLS)
@@ -1828,7 +1829,6 @@ void ED_region_panels(const bContext *C, ARegion *ar, bool vertical, const char 
 					panelContext = UI_LAYOUT_PANEL;
 
 
-				int widthOrHeight = w - 2 * style->panelspace;
 				panel->layout = UI_block_layout(
 				        block, UI_LAYOUT_VERTICAL, panelContext,
 						style->panelspace, 0, widthOrHeight, em, 0, style);
