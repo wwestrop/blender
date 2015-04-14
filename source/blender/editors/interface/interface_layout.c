@@ -3154,7 +3154,7 @@ static void ui_layout_add_padding_button(uiLayoutRoot *root)
 	}
 }
 
-uiLayout *UI_block_layout(uiBlock *block, int dir, int type, int x, int y, int size, int em, int padding, uiStyle *style)
+uiLayout *UI_block_layout(uiBlock *block, int dir, eButType type, int x, int y, int size, int em, int padding, uiStyle *style)
 {
 	uiLayout *layout;
 	uiLayoutRoot *root;

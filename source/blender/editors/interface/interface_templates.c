@@ -1283,7 +1283,7 @@ static void do_preview_buttons(bContext *C, void *arg, int event)
 	}
 }
 
-void uiTemplatePreview(uiLayout *layout, bContext *C, ID *id, int show_buttons, ID *parent, MTex *slot,
+void uiTemplatePreview(uiLayout *layout, bContext *C, ID *id, bool show_buttons, ID *parent, MTex *slot,
                        const char *preview_id)
 {
 	uiLayout *row, *col;
@@ -1493,7 +1493,7 @@ static void colorband_update_cb(bContext *UNUSED(C), void *bt_v, void *coba_v)
 }
 
 static void colorband_buttons_layout(uiLayout *layout, uiBlock *block, ColorBand *coba, const rctf *butr,
-                                     RNAUpdateCb *cb, int expand)
+                                     RNAUpdateCb *cb, bool expand)
 {
 	uiLayout *row, *split, *subsplit;
 	uiBut *bt;
@@ -1585,7 +1585,7 @@ static void colorband_buttons_layout(uiLayout *layout, uiBlock *block, ColorBand
 	}
 }
 
-void uiTemplateColorRamp(uiLayout *layout, PointerRNA *ptr, const char *propname, int expand)
+void uiTemplateColorRamp(uiLayout *layout, PointerRNA *ptr, const char *propname, bool expand)
 {
 	PropertyRNA *prop = RNA_struct_find_property(ptr, propname);
 	PointerRNA cptr;
@@ -2234,7 +2234,7 @@ static void curvemap_buttons_layout(uiLayout *layout, PointerRNA *ptr, char labe
 }
 
 void uiTemplateCurveMapping(uiLayout *layout, PointerRNA *ptr, const char *propname, int type,
-                            int levels, int brush, int neg_slope)
+                            bool levels, bool brush, bool neg_slope)
 {
 	RNAUpdateCb *cb;
 	PropertyRNA *prop = RNA_struct_find_property(ptr, propname);
@@ -2277,8 +2277,8 @@ void uiTemplateCurveMapping(uiLayout *layout, PointerRNA *ptr, const char *propn
 #define WHEEL_SIZE  (5 * U.widget_unit)
 
 /* This template now follows User Preference for type - name is not correct anymore... */
-void uiTemplateColorPicker(uiLayout *layout, PointerRNA *ptr, const char *propname, int value_slider,
-                           int lock, int lock_luminosity, int cubic)
+void uiTemplateColorPicker(uiLayout *layout, PointerRNA *ptr, const char *propname, bool value_slider,
+                           bool lock, bool lock_luminosity, bool cubic)
 {
 	PropertyRNA *prop = RNA_struct_find_property(ptr, propname);
 	uiBlock *block = uiLayoutGetBlock(layout);
@@ -2374,7 +2374,7 @@ void uiTemplateColorPicker(uiLayout *layout, PointerRNA *ptr, const char *propna
 	}
 }
 
-void uiTemplatePalette(uiLayout *layout, PointerRNA *ptr, const char *propname, int UNUSED(colors))
+void uiTemplatePalette(uiLayout *layout, PointerRNA *ptr, const char *propname, bool UNUSED(colors))
 {
 	PropertyRNA *prop = RNA_struct_find_property(ptr, propname);
 	PointerRNA cptr;

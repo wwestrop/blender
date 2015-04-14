@@ -384,7 +384,7 @@ void WM_keymap_restore_to_default(struct wmKeyMap *keymap, struct bContext *C) R
 void WM_keymap_restore_item_to_default(struct bContext *C, struct wmKeyMap *keymap, struct wmKeyMapItem *kmi) RET_NONE
 void WM_keymap_properties_reset(struct wmKeyMapItem *kmi, struct IDProperty *properties) RET_NONE
 void WM_keyconfig_update_tag(struct wmKeyMap *keymap, struct wmKeyMapItem *kmi) RET_NONE
-int WM_keymap_item_compare(struct wmKeyMapItem *k1, struct wmKeyMapItem *k2) RET_ZERO
+bool WM_keymap_item_compare(struct wmKeyMapItem *k1, struct wmKeyMapItem *k2) RET_ZERO
 int	WM_keymap_map_type_get(struct wmKeyMapItem *kmi) RET_ZERO
 
 

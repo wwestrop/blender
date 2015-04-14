@@ -760,7 +760,7 @@ static void rna_NodeTree_active_node_set(PointerRNA *ptr, const PointerRNA value
 
 static bNodeLink *rna_NodeTree_link_new(bNodeTree *ntree, ReportList *reports,
                                         bNodeSocket *fromsock, bNodeSocket *tosock,
-                                        int verify_limits)
+                                        bool verify_limits)
 {
 	bNodeLink *ret;
 	bNode *fromnode = NULL, *tonode = NULL;
@@ -1285,7 +1285,7 @@ static void rna_Node_draw_label(bNodeTree *ntree, bNode *node, char *label, int 
 	RNA_parameter_list_free(&list);
 }
 
-static int rna_Node_is_registered_node_type(StructRNA *type)
+static bool rna_Node_is_registered_node_type(StructRNA *type)
 {
 	return (RNA_struct_blender_type_get(type) != NULL);
 }
@@ -2333,13 +2333,13 @@ static PointerRNA rna_NodeInternal_output_template(StructRNA *srna, int index)
 	return PointerRNA_NULL;
 }
 
-static int rna_NodeInternal_poll(StructRNA *srna, bNodeTree *ntree)
+static bool rna_NodeInternal_poll(StructRNA *srna, bNodeTree *ntree)
 {
 	bNodeType *ntype = RNA_struct_blender_type_get(srna);
 	return ntype && (!ntype->poll || ntype->poll(ntype, ntree));
 }
 
-static int rna_NodeInternal_poll_instance(bNode *node, bNodeTree *ntree)
+static bool rna_NodeInternal_poll_instance(bNode *node, bNodeTree *ntree)
 {
 	bNodeType *ntype = node->typeinfo;
 	if (ntype->poll_instance) {

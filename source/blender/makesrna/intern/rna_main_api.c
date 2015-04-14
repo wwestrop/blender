@@ -291,7 +291,7 @@ static Mesh *rna_Main_meshes_new(Main *bmain, const char *name)
 /* settings: 1 - preview, 2 - render */
 Mesh *rna_Main_meshes_new_from_object(
         Main *bmain, ReportList *reports, Scene *sce,
-        Object *ob, int apply_modifiers, int settings, int calc_tessface, int calc_undeformed)
+        Object *ob, bool apply_modifiers, int settings, bool calc_tessface, bool calc_undeformed)
 {
 	switch (ob->type) {
 		case OB_FONT:
@@ -341,7 +341,7 @@ static void rna_Main_lamps_remove(Main *bmain, ReportList *reports, PointerRNA *
 	}
 }
 
-static Image *rna_Main_images_new(Main *bmain, const char *name, int width, int height, int alpha, int float_buffer)
+static Image *rna_Main_images_new(Main *bmain, const char *name, int width, int height, bool alpha, bool float_buffer)
 {
 	float color[4] = {0.0, 0.0, 0.0, 1.0};
 	Image *image = BKE_image_add_generated(bmain, width, height, name, alpha ? 32 : 24, float_buffer, 0, color);
@@ -560,7 +560,7 @@ static void rna_Main_texts_remove(Main *bmain, PointerRNA *text_ptr)
 	RNA_POINTER_INVALIDATE(text_ptr);
 }
 
-static Text *rna_Main_texts_load(Main *bmain, ReportList *reports, const char *filepath, int is_internal)
+static Text *rna_Main_texts_load(Main *bmain, ReportList *reports, const char *filepath, bool is_internal)
 {
 	Text *txt;
 
@@ -722,38 +722,38 @@ static void rna_Main_linestyles_remove(Main *bmain, ReportList *reports, Freesty
 }
 
 /* tag functions, all the same */
-static void rna_Main_cameras_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->camera, value); }
-static void rna_Main_scenes_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->scene, value); }
-static void rna_Main_objects_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->object, value); }
-static void rna_Main_materials_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->mat, value); }
-static void rna_Main_node_groups_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->nodetree, value); }
-static void rna_Main_meshes_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->mesh, value); }
-static void rna_Main_lamps_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->lamp, value); }
-static void rna_Main_libraries_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->library, value); }
-static void rna_Main_screens_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->screen, value); }
-static void rna_Main_window_managers_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->wm, value); }
-static void rna_Main_images_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->image, value); }
-static void rna_Main_lattices_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->latt, value); }
-static void rna_Main_curves_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->curve, value); }
-static void rna_Main_metaballs_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->mball, value); }
-static void rna_Main_fonts_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->vfont, value); }
-static void rna_Main_textures_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->tex, value); }
-static void rna_Main_brushes_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->brush, value); }
-static void rna_Main_worlds_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->world, value); }
-static void rna_Main_groups_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->group, value); }
-// static void rna_Main_shape_keys_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->key, value); }
-// static void rna_Main_scripts_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->script, value); }
-static void rna_Main_texts_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->text, value); }
-static void rna_Main_speakers_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->speaker, value); }
-static void rna_Main_sounds_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->sound, value); }
-static void rna_Main_armatures_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->armature, value); }
-static void rna_Main_actions_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->action, value); }
-static void rna_Main_particles_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->particle, value); }
-static void rna_Main_palettes_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->palettes, value); }
-static void rna_Main_gpencil_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->gpencil, value); }
-static void rna_Main_movieclips_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->movieclip, value); }
-static void rna_Main_masks_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->mask, value); }
-static void rna_Main_linestyle_tag(Main *bmain, int value) { BKE_main_id_tag_listbase(&bmain->linestyle, value); }
+static void rna_Main_cameras_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->camera, value); }
+static void rna_Main_scenes_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->scene, value); }
+static void rna_Main_objects_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->object, value); }
+static void rna_Main_materials_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->mat, value); }
+static void rna_Main_node_groups_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->nodetree, value); }
+static void rna_Main_meshes_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->mesh, value); }
+static void rna_Main_lamps_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->lamp, value); }
+static void rna_Main_libraries_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->library, value); }
+static void rna_Main_screens_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->screen, value); }
+static void rna_Main_window_managers_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->wm, value); }
+static void rna_Main_images_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->image, value); }
+static void rna_Main_lattices_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->latt, value); }
+static void rna_Main_curves_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->curve, value); }
+static void rna_Main_metaballs_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->mball, value); }
+static void rna_Main_fonts_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->vfont, value); }
+static void rna_Main_textures_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->tex, value); }
+static void rna_Main_brushes_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->brush, value); }
+static void rna_Main_worlds_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->world, value); }
+static void rna_Main_groups_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->group, value); }
+// static void rna_Main_shape_keys_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->key, value); }
+// static void rna_Main_scripts_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->script, value); }
+static void rna_Main_texts_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->text, value); }
+static void rna_Main_speakers_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->speaker, value); }
+static void rna_Main_sounds_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->sound, value); }
+static void rna_Main_armatures_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->armature, value); }
+static void rna_Main_actions_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->action, value); }
+static void rna_Main_particles_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->particle, value); }
+static void rna_Main_palettes_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->palettes, value); }
+static void rna_Main_gpencil_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->gpencil, value); }
+static void rna_Main_movieclips_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->movieclip, value); }
+static void rna_Main_masks_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->mask, value); }
+static void rna_Main_linestyle_tag(Main *bmain, bool value) { BKE_main_id_tag_listbase(&bmain->linestyle, value); }
 
 static int rna_Main_cameras_is_updated_get(PointerRNA *ptr) { return DAG_id_type_tagged(ptr->data, ID_CA) != 0; }
 static int rna_Main_scenes_is_updated_get(PointerRNA *ptr) { return DAG_id_type_tagged(ptr->data, ID_SCE) != 0; }

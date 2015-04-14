@@ -132,7 +132,7 @@ static void rna_SceneRender_get_frame_path(RenderData *rd, int frame, char *name
 }
 
 static void rna_Scene_ray_cast(Scene *scene, float ray_start[3], float ray_end[3],
-                               int *r_success, Object **r_ob, float r_obmat[16],
+                               bool *r_success, Object **r_ob, float r_obmat[16],
                                float r_location[3], float r_normal[3])
 {
 	float dummy_dist_px = 0;

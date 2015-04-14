@@ -1542,7 +1542,7 @@ void RNA_def_property_string_maxlength(PropertyRNA *prop, int maxlength)
 	}
 }
 
-void RNA_def_property_boolean_default(PropertyRNA *prop, int value)
+void RNA_def_property_boolean_default(PropertyRNA *prop, bool value)
 {
 	StructRNA *srna = DefRNA.laststruct;
 
@@ -2523,7 +2523,7 @@ void RNA_def_py_data(PropertyRNA *prop, void *py_data)
 
 /* Compact definitions */
 
-PropertyRNA *RNA_def_boolean(StructOrFunctionRNA *cont_, const char *identifier, int default_value,
+PropertyRNA *RNA_def_boolean(StructOrFunctionRNA *cont_, const char *identifier, bool default_value,
                              const char *ui_name, const char *ui_description)
 {
 	ContainerRNA *cont = cont_;

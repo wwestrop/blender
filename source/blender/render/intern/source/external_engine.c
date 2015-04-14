@@ -243,7 +243,7 @@ void RE_engine_update_result(RenderEngine *engine, RenderResult *result)
 	}
 }
 
-void RE_engine_end_result(RenderEngine *engine, RenderResult *result, int cancel, int merge_results)
+void RE_engine_end_result(RenderEngine *engine, RenderResult *result, bool cancel, bool merge_results)
 {
 	Render *re = engine->re;
 
@@ -289,7 +289,7 @@ void RE_engine_end_result(RenderEngine *engine, RenderResult *result, int cancel
 
 /* Cancel */
 
-int RE_engine_test_break(RenderEngine *engine)
+bool RE_engine_test_break(RenderEngine *engine)
 {
 	Render *re = engine->re;
 

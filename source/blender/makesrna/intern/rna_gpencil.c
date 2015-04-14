@@ -387,7 +387,7 @@ static bGPDframe *rna_GPencil_frame_copy(bGPDlayer *layer, bGPDframe *src)
 	return frame;
 }
 
-static bGPDlayer *rna_GPencil_layer_new(bGPdata *gpd, const char *name, int setactive)
+static bGPDlayer *rna_GPencil_layer_new(bGPdata *gpd, const char *name, bool setactive)
 {
 	bGPDlayer *gl = gpencil_layer_addnew(gpd, name, setactive);
 

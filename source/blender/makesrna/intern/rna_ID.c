@@ -363,7 +363,7 @@ static void rna_IDMaterials_append_id(ID *id, Material *ma)
 	WM_main_add_notifier(NC_OBJECT | ND_OB_SHADING, id);
 }
 
-static Material *rna_IDMaterials_pop_id(ID *id, ReportList *reports, int index_i, int remove_material_slot)
+static Material *rna_IDMaterials_pop_id(ID *id, ReportList *reports, int index_i, bool remove_material_slot)
 {
 	Material *ma;
 	short *totcol = give_totcolp_id(id);
@@ -391,7 +391,7 @@ static Material *rna_IDMaterials_pop_id(ID *id, ReportList *reports, int index_i
 	return ma;
 }
 
-static void rna_IDMaterials_clear_id(ID *id, int remove_material_slot)
+static void rna_IDMaterials_clear_id(ID *id, bool remove_material_slot)
 {
 	BKE_material_clear_id(id, remove_material_slot);
 

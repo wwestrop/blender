@@ -74,7 +74,7 @@ void RNA_def_struct_translation_context(StructRNA *srna, const char *context);
 
 typedef void StructOrFunctionRNA;
 
-PropertyRNA *RNA_def_boolean(StructOrFunctionRNA *cont, const char *identifier, int default_value, const char *ui_name, const char *ui_description);
+PropertyRNA *RNA_def_boolean(StructOrFunctionRNA *cont, const char *identifier, bool default_value, const char *ui_name, const char *ui_description);
 PropertyRNA *RNA_def_boolean_array(StructOrFunctionRNA *cont, const char *identifier, int len, int *default_value, const char *ui_name, const char *ui_description);
 PropertyRNA *RNA_def_boolean_layer(StructOrFunctionRNA *cont, const char *identifier, int len, int *default_value, const char *ui_name, const char *ui_description);
 PropertyRNA *RNA_def_boolean_layer_member(StructOrFunctionRNA *cont, const char *identifier, int len, int *default_value, const char *ui_name, const char *ui_description);
@@ -147,7 +147,7 @@ void RNA_def_property_string_maxlength(PropertyRNA *prop, int maxlength);
 void RNA_def_property_struct_type(PropertyRNA *prop, const char *type);
 void RNA_def_property_struct_runtime(PropertyRNA *prop, StructRNA *type);
 
-void RNA_def_property_boolean_default(PropertyRNA *prop, int value);
+void RNA_def_property_boolean_default(PropertyRNA *prop, bool value);
 void RNA_def_property_boolean_array_default(PropertyRNA *prop, const int *array);
 void RNA_def_property_int_default(PropertyRNA *prop, int value);
 void RNA_def_property_int_array_default(PropertyRNA *prop, const int *array);

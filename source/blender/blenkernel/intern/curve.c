@@ -4453,7 +4453,7 @@ void BKE_curve_material_index_clear(Curve *cu)
 	}
 }
 
-int BKE_curve_material_index_validate(Curve *cu)
+bool BKE_curve_material_index_validate(Curve *cu)
 {
 	const int curvetype = BKE_curve_type_get(cu);
 	bool is_valid = true;

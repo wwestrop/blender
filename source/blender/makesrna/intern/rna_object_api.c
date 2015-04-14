@@ -138,7 +138,7 @@ static void rna_Object_camera_fit_coords(
 /* settings: 0 - preview, 1 - render */
 static Mesh *rna_Object_to_mesh(
         Object *ob, ReportList *reports, Scene *sce,
-        int apply_modifiers, int settings, int calc_tessface, int calc_undeformed)
+        bool apply_modifiers, int settings, bool calc_tessface, bool calc_undeformed)
 {
 	return rna_Main_meshes_new_from_object(G.main, reports, sce, ob, apply_modifiers, settings, calc_tessface, calc_undeformed);
 }
@@ -223,7 +223,7 @@ static void rna_Object_free_duplilist(Object *ob)
 }
 
 static PointerRNA rna_Object_shape_key_add(Object *ob, bContext *C, ReportList *reports,
-                                           const char *name, int from_mix)
+                                           const char *name, bool from_mix)
 {
 	KeyBlock *kb = NULL;
 
@@ -241,7 +241,7 @@ static PointerRNA rna_Object_shape_key_add(Object *ob, bContext *C, ReportList *
 	}
 }
 
-static int rna_Object_is_visible(Object *ob, Scene *sce)
+static bool rna_Object_is_visible(Object *ob, Scene *sce)
 {
 	return !(ob->restrictflag & OB_RESTRICT_VIEW) && (ob->lay & sce->lay);
 }
@@ -386,12 +386,12 @@ static void rna_ObjectBase_layers_from_view(Base *base, View3D *v3d)
 	base->lay = base->object->lay = v3d->lay;
 }
 
-static int rna_Object_is_modified(Object *ob, Scene *scene, int settings)
+static bool rna_Object_is_modified(Object *ob, Scene *scene, int settings)
 {
 	return BKE_object_is_modified(scene, ob) & settings;
 }
 
-static int rna_Object_is_deform_modified(Object *ob, Scene *scene, int settings)
+static bool rna_Object_is_deform_modified(Object *ob, Scene *scene, int settings)
 {
 	return BKE_object_is_deform_modified(scene, ob) & settings;
 }
@@ -434,7 +434,7 @@ void rna_Object_dm_info(struct Object *ob, int type, char *result)
 }
 #endif /* NDEBUG */
 
-static int rna_Object_update_from_editmode(Object *ob)
+static bool rna_Object_update_from_editmode(Object *ob)
 {
 	if (ob->mode & OB_MODE_EDIT) {
 		return ED_object_editmode_load(ob);
