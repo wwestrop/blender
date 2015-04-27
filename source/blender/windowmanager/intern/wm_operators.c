@@ -2286,7 +2286,7 @@ static void WM_OT_read_history(wmOperatorType *ot)
 static void WM_OT_read_homefile(wmOperatorType *ot)
 {
 	PropertyRNA *prop;
-	ot->name = "Reload Start-Up File";
+	ot->name = "New";
 	ot->idname = "WM_OT_read_homefile";
 	ot->description = "Open the default file (doesn't save the current file)";
 	ot->icon = ICON_NEW;
@@ -2460,7 +2460,7 @@ static void wm_open_mainfile_ui(bContext *UNUSED(C), wmOperator *op)
 
 static void WM_OT_open_mainfile(wmOperatorType *ot)
 {
-	ot->name = "Open Blender File";
+	ot->name = "Open";
 	ot->idname = "WM_OT_open_mainfile";
 	ot->description = "Open a Blender file";
 	ot->icon = ICON_FILE_FOLDER;
@@ -3037,7 +3037,7 @@ static int wm_save_mainfile_invoke(bContext *C, wmOperator *op, const wmEvent *U
 
 static void WM_OT_save_mainfile(wmOperatorType *ot)
 {
-	ot->name = "Save Blender File";
+	ot->name = "Save";
 	ot->idname = "WM_OT_save_mainfile";
 	ot->description = "Save the current Blender file";
 	ot->icon = ICON_FILE_TICK;
