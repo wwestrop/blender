@@ -21,6 +21,14 @@ import bpy
 from bpy.types import Header, Menu, Panel
 
 
+def quickAccessTools(layout):
+    split = layout.split(0.05);
+    col = split.column()
+    col.menu("INFO_MT_file")
+    col.menu("INFO_MT_window")
+    col.menu("INFO_MT_help")
+    return split
+
 
 class INFO_PT_Ribbon_Home(Panel):
     bl_category = "Home"
@@ -30,7 +38,9 @@ class INFO_PT_Ribbon_Home(Panel):
     bl_region_type = 'TOOLS'
 
     def draw(self, context):
+        # Quick access toolbar (common on all tabs)
         layout = self.layout
+        layout = quickAccessTools(layout);
 
         row = layout.row(align=True)
         row.alignment = 'LEFT'
@@ -75,8 +85,10 @@ class INFO_PT_Ribbon_Modelling(Panel):
     bl_region_type = 'TOOLS'
 
     def draw(self, context):
+        # Quick access toolbar (common on all tabs)
         layout = self.layout
-        
+        layout = quickAccessTools(layout);
+
         row = layout.row(align=True)
         row.alignment = 'LEFT'
         
