@@ -125,6 +125,7 @@ void MESH_OT_subdivide(wmOperatorType *ot)
 	ot->name = "Subdivide";
 	ot->description = "Subdivide selected edges";
 	ot->idname = "MESH_OT_subdivide";
+	ot->icon = ICON_SUBDIVIDE;
 
 	/* api callbacks */
 	ot->exec = edbm_subdivide_exec;
