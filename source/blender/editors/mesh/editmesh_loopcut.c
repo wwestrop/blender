@@ -60,6 +60,8 @@
 #include "WM_api.h"
 #include "WM_types.h"
 
+#include "UI_resources.h"
+
 #include "mesh_intern.h"  /* own include */
 
 #define SUBD_SMOOTH_MAX 4.0f
@@ -813,6 +815,7 @@ void MESH_OT_loopcut(wmOperatorType *ot)
 	ot->name = "Loop Cut";
 	ot->idname = "MESH_OT_loopcut";
 	ot->description = "Add a new loop between existing loops";
+	ot->icon = ICON_LOOP_CUT;
 	
 	/* callbacks */
 	ot->invoke = ringcut_invoke;
