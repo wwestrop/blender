@@ -123,6 +123,39 @@ class INFO_PT_Ribbon_Modelling(Panel):
 
 
 
+class INFO_PT_Ribbon_Render(Panel):
+    bl_category = "Render"
+    bl_context = ""
+    bl_label = "Render"
+    bl_space_type = 'INFO'
+    bl_region_type = 'TOOLS'
+
+    def draw(self, context):
+        # Quick access toolbar (common on all tabs)
+        layout = self.layout
+        layout = quickAccessTools(layout);
+
+        row = layout.row(align=True)
+        row.alignment = 'LEFT'
+        
+        rd = context.scene.render
+        
+        row.operatorButton("RENDER_OT_render")
+        op = row.operator("render.opengl", text="Render Animation", icon='RENDER_ANIMATION')
+        op.animation = True
+        row.separator()
+        
+        col = row.column()
+        col.menu("INFO_MT_opengl_render")                                               # rendering options (antialiasing, etc)
+        col.prop(rd, "engine", text="")                                                 # rendering engine choice
+        col.menu("RENDER_MT_presets", text=bpy.types.RENDER_MT_presets.bl_label)
+        row.separator()
+        box = row.box()
+        box.prop(rd, "resolution_x", text="X")
+        box.prop(rd, "resolution_y", text="Y")
+        row.separator()
+
+
 class INFO_HT_header(Header):
     bl_space_type = 'INFO'
 

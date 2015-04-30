@@ -1083,7 +1083,7 @@ void uiItemEnumO_string(uiLayout *layout, const char *name, int icon, const char
 /** Creates a new button to invoke a defined operator (looked up by its name)
  *  \param layout The layout the new button will be injected into
  *  \param opname The name of the wmOperatorType, used to look up the function of this button */
-void operatorButton(uiLayout *layout, char *opname)
+PointerRNA operatorButton(uiLayout *layout, char *opname)
 {
 	wmOperatorType *ot;
 	PointerRNA ptr;
@@ -1093,7 +1093,12 @@ void operatorButton(uiLayout *layout, char *opname)
 
 	UI_OPERATOR_ERROR_RET(ot, opname, return);
 
+
+	/* Prepare RNA property bag for operator */
 	WM_operator_properties_create_ptr(&ptr, ot);
+	IDPropertyTemplate val = { 0 };
+	ptr.data = IDP_New(IDP_GROUP, &val, "wmOperatorProperties");
+
 
 	uiItemFullO_ptr(layout, ot, ot->name, ot->icon, ptr.data, layout->root->opcontext, 0);
 
@@ -1104,6 +1109,8 @@ void operatorButton(uiLayout *layout, char *opname)
 	but->rect.xmax = 80;
 	but->rect.ymax = 80;
 	but->drawflag |= UI_BUT_RIBBON_VISUAL;
+	
+	return ptr;
 
 }
 

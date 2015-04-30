@@ -944,7 +944,7 @@ void uiItemStringO(uiLayout *layout, const char *name, int icon, const char *opn
 /** Creates a new button to invoke a defined operator (looked up by its name)
 *  \param layout The layout the new button will be injected into
 *  \param opname The name of the wmOperatorType, used to look up the function of this button */
-void operatorButton(uiLayout *layout, char *opname);
+PointerRNA operatorButton(uiLayout *layout, char *opname);
 
 PointerRNA uiItemFullO_ptr(uiLayout *layout, struct wmOperatorType *ot, const char *name, int icon, IDProperty *properties, int context, int flag);
 PointerRNA uiItemFullO(uiLayout *layout, const char *idname, const char *name, int icon, struct IDProperty *properties, int context, int flag);

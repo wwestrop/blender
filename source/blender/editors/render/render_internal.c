@@ -84,6 +84,7 @@
 #include "RNA_access.h"
 #include "RNA_define.h"
 
+#include "UI_resources.h"
 
 #include "render_intern.h"
 
@@ -994,6 +995,7 @@ void RENDER_OT_render(wmOperatorType *ot)
 	ot->name = "Render";
 	ot->description = "Render active scene";
 	ot->idname = "RENDER_OT_render";
+	ot->icon = ICON_RENDER_STILL;
 
 	/* api callbacks */
 	ot->invoke = screen_render_invoke;

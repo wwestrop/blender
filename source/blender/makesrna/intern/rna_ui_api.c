@@ -177,9 +177,9 @@ static void rna_uiItemPointerR(uiLayout *layout, struct PointerRNA *ptr, const c
 
 
 /** Invoked from Python in order to add a ribbon-y button */
-static void rna_operatorButton(uiLayout *layout, const char *opname)
+static PointerRNA rna_operatorButton(uiLayout *layout, const char *opname)
 {
-	operatorButton(layout, opname);
+	return operatorButton(layout, opname);
 }
 
 static PointerRNA rna_uiItemO(uiLayout *layout, const char *opname, const char *name, const char *text_ctxt,
@@ -581,6 +581,10 @@ void RNA_api_ui_layout(StructRNA *srna)
 	func = RNA_def_function(srna, "operatorButton", "rna_operatorButton");
 	parm = RNA_def_string(func, "operator_idname", NULL, 0, "", "Identifier of the operator");
 	RNA_def_property_flag(parm, PROP_REQUIRED);
+	parm = RNA_def_pointer(func, "properties", "OperatorProperties", "",
+		"Operator properties to fill in, return when 'properties' is set to true");
+	RNA_def_property_flag(parm, PROP_REQUIRED | PROP_RNAPTR);
+	RNA_def_function_return(func, parm);
 	RNA_def_function_ui_description(func, "Places a button that calls an operator into the layout. Drawn ribbon-y");
 
 
