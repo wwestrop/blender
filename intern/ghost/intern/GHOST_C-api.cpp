@@ -892,6 +892,16 @@ int GHOST_toggleConsole(int action)
 	return system->toggleConsole(action);
 }
 
+/**
+* Presents the user with a Yes/No choice in a modal dialog box
+* \param window The window that will own the modal dialog
+*/
+int GHOST_confirmationBox(GHOST_WindowHandle windowhandle, const char *message, const char *caption)
+{
+	GHOST_ISystem *system = GHOST_ISystem::getSystem();
+	return system->confirmationBox((GHOST_IWindow *)windowhandle, message, caption);
+}
+
 
 int GHOST_confirmQuit(GHOST_WindowHandle windowhandle)
 {

@@ -407,7 +407,13 @@ public:
 	virtual void putClipboard(GHOST_TInt8 *buffer, bool selection) const = 0;
 
 	/**
-	 * Confirms quitting he program when there is just one window left open
+	* Presents the user with a Yes/No choice in a modal dialog box
+	* \param window The window that will own the modal dialog
+	*/
+	virtual int confirmationBox(GHOST_IWindow *window, const char *message, const char *caption) const = 0;
+
+	/**
+	 * Confirms quitting the program when there is just one window left open
 	 * in the application
 	 */
 	virtual int confirmQuit(GHOST_IWindow *window) const = 0;

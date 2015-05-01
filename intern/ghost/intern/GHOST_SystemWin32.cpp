@@ -1564,8 +1564,20 @@ int GHOST_SystemWin32::toggleConsole(int action)
 	return m_consoleStatus;
 }
 
+
+/**
+* Presents the user with a Yes/No choice in a modal dialog box
+* \param window The window that will own the modal dialog
+*/
+int GHOST_SystemWin32::confirmationBox(GHOST_IWindow *window, const char *message, const char *caption) const
+{
+	caption = caption ? caption : "Confirm";
+	return (MessageBox(window ? ((GHOST_WindowWin32 *)window)->getHWND() : 0, message,
+		caption, MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST) == IDOK);
+}
+
+
 int GHOST_SystemWin32::confirmQuit(GHOST_IWindow *window) const
 {
-	return (MessageBox(window ? ((GHOST_WindowWin32 *)window)->getHWND() : 0, "Some changes have not been saved.\nDo you really want to quit?",
-	                   "Exit Blender", MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST) == IDOK);
+	return confirmationBox(window, "Some changes have not been saved.\nDo you really want to quit?", "Exit Blender");
 }

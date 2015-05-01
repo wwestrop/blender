@@ -371,6 +371,12 @@ GHOST_TSuccess GHOST_System::createFullScreenWindow(GHOST_Window **window, const
 }
 
 
+int GHOST_System::confirmationBox(GHOST_IWindow *window, const char *message, const char *caption) const
+{
+	/* Non-Windows platform, not implemented yet */
+	return 1;
+}
+
 int GHOST_System::confirmQuit(GHOST_IWindow *window) const
 {
 	return 1;

@@ -1138,11 +1138,30 @@ int WM_enum_search_invoke(bContext *C, wmOperator *op, const wmEvent *UNUSED(eve
 	return OPERATOR_INTERFACE;
 }
 
+
+/** Simply allocates a new char array containing the operator name plus a question mark. */
+static const char *questioniseOperator(wmOperator *op)
+{
+	int len;
+	char *strBuf;
+	len = strlen(op->type->name);
+	strBuf= MEM_callocN(sizeof(char) * (len + 2), "Questionised operator name");				/* One for the question mark, one for null terminator */
+	//strBuf = malloc();			
+	strncpy(strBuf, op->type->name, len);
+	strBuf[len] = '?';
+	strBuf[len + 1] = '\0';
+
+	return strBuf;
+}
+
+
 /* Can't be used as an invoke directly, needs message arg (can be NULL) */
 int WM_operator_confirm_message_ex(bContext *C, wmOperator *op,
                                    const char *title, const int icon,
                                    const char *message)
 {
+#ifndef WIN32
+
 	uiPopupMenu *pup;
 	uiLayout *layout;
 	IDProperty *properties = op->ptr->data;
@@ -1156,10 +1175,32 @@ int WM_operator_confirm_message_ex(bContext *C, wmOperator *op,
 	layout = UI_popup_menu_layout(pup);
 	uiItemFullO_ptr(layout, op->type, message, ICON_NONE, properties, WM_OP_EXEC_REGION_WIN, 0);
 	UI_popup_menu_end(C, pup);
-	
+
 	return OPERATOR_INTERFACE;
+
+#endif
+#ifdef WIN32
+
+	char* questionString;
+	wmWindow *window; 
+	
+	window = CTX_wm_window(C);
+	questionString = message ? message : questioniseOperator(op);				/* Some code uses operator name, rather than specifying a message */
+	
+	if (GHOST_confirmationBox(window->ghostwin, questionString, NULL)) {
+		/* If confirmed, immediately 'exec' the operator. Previously would post another event to message queue to 'exec'.  */
+		return op->type->exec(C, op);										
+	}
+
+	if (!message) MEM_freeN(questionString);									/* We allocated this (i.e. message was passed in null and we inferred one) */
+
+	return OPERATOR_INTERFACE;
+
+#endif
 }
 
+
+/** Prompts the user for confirmation if the selected operator is potentially destructive */
 int WM_operator_confirm_message(bContext *C, wmOperator *op, const char *message)
 {
 	return WM_operator_confirm_message_ex(C, op, IFACE_("OK?"), ICON_QUESTION, message);

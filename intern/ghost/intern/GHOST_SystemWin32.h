@@ -206,11 +206,17 @@ public:
 	 * \return Indication whether the event was handled.
 	 */
 	static GHOST_TSuccess pushDragDropEvent(GHOST_TEventType eventType, GHOST_TDragnDropTypes draggedObjectType, GHOST_WindowWin32 *window, int mouseX, int mouseY, void *data);
+
+	/**
+	* Presents the user with a Yes/No choice in a modal dialog box
+	* \param window The window that will own the modal dialog
+	*/
+	int confirmationBox(GHOST_IWindow *window, const char *message, const char *caption) const;
 	
-/**
- * Confirms quitting he program when there is just one window left open
- * in the application
- */
+	/**
+	 * Confirms quitting the program when there is just one window left open
+	 * in the application
+	 */
 	int confirmQuit(GHOST_IWindow *window) const;
 
 protected:

@@ -881,6 +881,12 @@ extern int GHOST_toggleConsole(int action);
 
 
 /**
+* Presents the user with a Yes/No choice in a modal dialog box
+* \param window The window that will own the modal dialog
+*/
+extern int GHOST_confirmationBox(GHOST_WindowHandle windowhandle, const char *message, const char *caption);
+
+/**
  * Confirms quitting he program when there is just one window left open
  * in the application
  */
