@@ -1088,16 +1088,16 @@ PointerRNA operatorButton(uiLayout *layout, char *opname)
 	wmOperatorType *ot;
 	PointerRNA ptr;
 	uiBut* but;
+	IDPropertyTemplate idprops = { 0 };
 
 	ot = WM_operatortype_find(opname, 0);
 
-	UI_OPERATOR_ERROR_RET(ot, opname, return);
+	UI_OPERATOR_ERROR_RET(ot, opname, return PointerRNA_NULL);
 
 
 	/* Prepare RNA property bag for operator */
 	WM_operator_properties_create_ptr(&ptr, ot);
-	IDPropertyTemplate val = { 0 };
-	ptr.data = IDP_New(IDP_GROUP, &val, "wmOperatorProperties");
+	ptr.data = IDP_New(IDP_GROUP, &idprops, "wmOperatorProperties");
 
 
 	uiItemFullO_ptr(layout, ot, ot->name, ot->icon, ptr.data, layout->root->opcontext, 0);

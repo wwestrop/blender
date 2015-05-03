@@ -1186,7 +1186,7 @@ int WM_operator_confirm_message_ex(bContext *C, wmOperator *op,
 	window = CTX_wm_window(C);
 	questionString = message ? message : questioniseOperator(op);				/* Some code uses operator name, rather than specifying a message */
 	
-	if (GHOST_confirmationBox(window->ghostwin, questionString, NULL)) {
+	if (GHOST_confirmationBox(window->ghostwin, questionString, title)) {
 		/* If confirmed, immediately 'exec' the operator. Previously would post another event to message queue to 'exec'.  */
 		return op->type->exec(C, op);										
 	}
