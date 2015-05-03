@@ -1145,8 +1145,7 @@ static const char *questioniseOperator(wmOperator *op)
 	int len;
 	char *strBuf;
 	len = strlen(op->type->name);
-	strBuf= MEM_callocN(sizeof(char) * (len + 2), "Questionised operator name");				/* One for the question mark, one for null terminator */
-	//strBuf = malloc();			
+	strBuf= MEM_callocN(sizeof(char) * (len + 2), "Questionised operator name");				/* One for the question mark, one for null terminator */		
 	strncpy(strBuf, op->type->name, len);
 	strBuf[len] = '?';
 	strBuf[len + 1] = '\0';
