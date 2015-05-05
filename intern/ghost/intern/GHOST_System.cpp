@@ -379,6 +379,7 @@ int GHOST_System::confirmationBox(GHOST_IWindow *window, const char *message, co
 int GHOST_System::confirmQuit(GHOST_IWindow * /*window*/) const
 {
 	return 1;
+}
 
 bool GHOST_System::useNativePixel(void)
 {
