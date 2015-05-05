@@ -40,39 +40,27 @@ struct View3D;
 struct ARegion;
 struct bContext;
 struct wmOperator;
-struct wmWindowManager;
 struct wmKeyConfig;
 struct ReportList;
-struct EditSelection;
 struct ViewContext;
 struct bDeformGroup;
-struct MDeformWeight;
 struct MDeformVert;
 struct Scene;
 struct Mesh;
-struct MFace;
-struct MEdge;
-struct MVert;
-struct MCol;
 struct UvVertMap;
 struct UvMapVert;
-struct CustomData;
 struct BMEditMesh;
-struct BMEditSelection;
 struct BMesh;
 struct BMVert;
 struct BMLoop;
 struct BMBVHTree;
-struct MLoopCol;
 struct BMEdge;
 struct BMFace;
 struct UvVertMap;
 struct UvMapVert;
 struct ToolSettings;
-struct Material;
 struct Object;
 struct rcti;
-struct MeshStatVis;
 
 /* editmesh_utils.c */
 void           EDBM_verts_mirror_cache_begin_ex(struct BMEditMesh *em, const int axis,
@@ -149,9 +137,27 @@ bool EDBM_backbuf_border_mask_init(struct ViewContext *vc, const int mcords[][2]
                                    short xmin, short ymin, short xmax, short ymax);
 bool EDBM_backbuf_circle_init(struct ViewContext *vc, short xs, short ys, short rads);
 
-struct BMVert *EDBM_vert_find_nearest(struct ViewContext *vc, float *r_dist, const bool sel, const bool strict);
-struct BMEdge *EDBM_edge_find_nearest(struct ViewContext *vc, float *r_dist);
-struct BMFace *EDBM_face_find_nearest(struct ViewContext *vc, float *r_dist);
+struct BMVert *EDBM_vert_find_nearest_ex(
+        struct ViewContext *vc, float *r_dist,
+        const bool use_select_bias, bool use_cycle);
+struct BMVert *EDBM_vert_find_nearest(
+        struct ViewContext *vc, float *r_dist);
+
+struct BMEdge *EDBM_edge_find_nearest_ex(
+        struct ViewContext *vc, float *r_dist,
+        float *r_dist_center,
+        const bool use_select_bias, const bool use_cycle,
+        struct BMEdge **r_eed_zbuf);
+struct BMEdge *EDBM_edge_find_nearest(
+        struct ViewContext *vc, float *r_dist);
+
+struct BMFace *EDBM_face_find_nearest_ex(
+        struct ViewContext *vc, float *r_dist,
+        float *r_dist_center,
+        const bool use_select_bias, const bool use_cycle,
+        struct BMFace **r_efa_zbuf);
+struct BMFace *EDBM_face_find_nearest(
+        struct ViewContext *vc, float *r_dist);
 
 bool EDBM_select_pick(struct bContext *C, const int mval[2], bool extend, bool deselect, bool toggle);
 

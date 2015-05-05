@@ -65,7 +65,6 @@ extern bool gDisableDeactivation;
 float gLinearSleepingTreshold;
 float gAngularSleepingTreshold;
 
-
 BlenderBulletCharacterController::BlenderBulletCharacterController(btMotionState *motionState, btPairCachingGhostObject *ghost, btConvexShape* shape, float stepHeight)
 	: btKinematicCharacterController(ghost,shape,stepHeight,2),
 		m_motionState(motionState),
@@ -116,6 +115,18 @@ void BlenderBulletCharacterController::jump()
 const btVector3& BlenderBulletCharacterController::getWalkDirection()
 {
 	return m_walkDirection;
+}
+
+bool CleanPairCallback::processOverlap(btBroadphasePair &pair)
+{
+	if ((pair.m_pProxy0 == m_cleanProxy) || (pair.m_pProxy1 == m_cleanProxy)) {
+		m_pairCache->cleanOverlappingPair(pair, m_dispatcher);
+		CcdPhysicsController *ctrl0 = (CcdPhysicsController*)(((btCollisionObject*)pair.m_pProxy0->m_clientObject)->getUserPointer());
+		CcdPhysicsController *ctrl1 = (CcdPhysicsController*)(((btCollisionObject*)pair.m_pProxy1->m_clientObject)->getUserPointer());
+		ctrl0->GetCollisionObject()->activate(false);
+		ctrl1->GetCollisionObject()->activate(false);
+	}
+	return false;
 }
 
 CcdPhysicsController::CcdPhysicsController (const CcdConstructionInfo& ci)
@@ -1082,6 +1093,25 @@ void		CcdPhysicsController::ResolveCombinedVelocities(float linvelX,float linvel
 {
 }
 
+void CcdPhysicsController::RefreshCollisions()
+{
+	// the object is in an inactive layer so it's useless to update it and can cause problems
+	if (!GetPhysicsEnvironment()->IsActiveCcdPhysicsController(this))
+		return;
+
+	btSoftRigidDynamicsWorld *dw = GetPhysicsEnvironment()->GetDynamicsWorld();
+	btBroadphaseProxy *proxy = m_object->getBroadphaseHandle();
+	btDispatcher *dispatcher = dw->getDispatcher();
+	btOverlappingPairCache *pairCache = dw->getPairCache();
+
+	CleanPairCallback cleanPairs(proxy, pairCache, dispatcher);
+	pairCache->processAllOverlappingPairs(&cleanPairs, dispatcher);
+
+	// Forcibly recreate the physics object
+	btBroadphaseProxy* handle = m_object->getBroadphaseHandle();
+	GetPhysicsEnvironment()->UpdateCcdPhysicsController(this, GetMass(), m_object->getCollisionFlags(), handle->m_collisionFilterGroup, handle->m_collisionFilterMask);
+}
+
 void	CcdPhysicsController::SuspendDynamics(bool ghost)
 {
 	btRigidBody *body = GetRigidBody();
@@ -1597,7 +1627,7 @@ void    CcdPhysicsController::AddCompoundChild(PHY_IPhysicsController* child)
 	// must update the broadphase cache,
 	GetPhysicsEnvironment()->RefreshCcdPhysicsController(this);
 	// remove the children
-	GetPhysicsEnvironment()->DisableCcdPhysicsController(childCtrl);
+	GetPhysicsEnvironment()->RemoveCcdPhysicsController(childCtrl);
 }
 
 /* Reverse function of the above, it will remove a shape from a compound shape
@@ -1653,7 +1683,7 @@ void    CcdPhysicsController::RemoveCompoundChild(PHY_IPhysicsController* child)
 	// must update the broadphase cache,
 	GetPhysicsEnvironment()->RefreshCcdPhysicsController(this);
 	// reactivate the children
-	GetPhysicsEnvironment()->EnableCcdPhysicsController(childCtrl);
+	GetPhysicsEnvironment()->AddCcdPhysicsController(childCtrl);
 }
 
 PHY_IPhysicsController* CcdPhysicsController::GetReplica()

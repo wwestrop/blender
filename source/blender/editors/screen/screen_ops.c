@@ -717,7 +717,7 @@ static void actionzone_apply(bContext *C, wmOperator *op, int type)
 	else
 		event.type = EVT_ACTIONZONE_REGION;
 
-	event.val = 0;
+	event.val = KM_NOTHING;
 	event.customdata = op->customdata;
 	event.customdatafree = true;
 	op->customdata = NULL;
@@ -990,6 +990,7 @@ static int area_dupli_invoke(bContext *C, wmOperator *op, const wmEvent *event)
 	rect.ymax = rect.ymin + BLI_rcti_size_y(&rect) / U.pixelsize;
 
 	newwin = WM_window_open(C, &rect);
+	*newwin->stereo3d_format = *win->stereo3d_format;
 	
 	/* allocs new screen and adds to newly created window, using window size */
 	newsc = ED_screen_add(newwin, CTX_data_scene(C), sc->id.name + 2);
@@ -3413,9 +3414,16 @@ static int match_region_with_redraws(int spacetype, int regiontype, int redraws)
 	return 0;
 }
 
+//#define PROFILE_AUDIO_SYNCH
+
 static int screen_animation_step(bContext *C, wmOperator *UNUSED(op), const wmEvent *event)
 {
 	bScreen *screen = CTX_wm_screen(C);
+
+#ifdef PROFILE_AUDIO_SYNCH
+	static int old_frame = 0;
+	int newfra_int;
+#endif
 
 	if (screen->animtimer && screen->animtimer == event->customdata) {
 		Main *bmain = CTX_data_main(C);
@@ -3438,11 +3446,24 @@ static int screen_animation_step(bContext *C, wmOperator *UNUSED(op), const wmEv
 		    finite(time = BKE_sound_sync_scene(scene)))
 		{
 			double newfra = (double)time * FPS;
+
 			/* give some space here to avoid jumps */
 			if (newfra + 0.5 > scene->r.cfra && newfra - 0.5 < scene->r.cfra)
 				scene->r.cfra++;
 			else
 				scene->r.cfra = newfra + 0.5;
+
+#ifdef PROFILE_AUDIO_SYNCH
+			newfra_int = scene->r.cfra;
+			if (newfra_int < old_frame) {
+				printf("back jump detected, frame %d!\n", newfra_int);
+			}
+			else if (newfra_int > old_frame + 1) {
+				printf("forward jump detected, frame %d!\n", newfra_int);
+			}
+			fflush(stdout);
+			old_frame = newfra_int;
+#endif
 		}
 		else {
 			if (sync) {
@@ -3509,8 +3530,12 @@ static int screen_animation_step(bContext *C, wmOperator *UNUSED(op), const wmEv
 			sad->flag |= ANIMPLAY_FLAG_JUMPED;
 		}
 		
-		if (sad->flag & ANIMPLAY_FLAG_JUMPED)
+		if (sad->flag & ANIMPLAY_FLAG_JUMPED) {
 			BKE_sound_seek_scene(bmain, scene);
+#ifdef PROFILE_AUDIO_SYNCH
+			old_frame = CFRA;
+#endif
+		}
 		
 		/* since we follow drawflags, we can't send notifier but tag regions ourselves */
 		ED_update_for_newframe(bmain, scene, 1);
@@ -4227,6 +4252,8 @@ void ED_keymap_screen(wmKeyConfig *keyconf)
 	WM_keymap_verify_item(keymap, "SCREEN_OT_area_dupli", EVT_ACTIONZONE_AREA, 0, KM_SHIFT, 0);
 	WM_keymap_verify_item(keymap, "SCREEN_OT_area_swap", EVT_ACTIONZONE_AREA, 0, KM_CTRL, 0);
 	WM_keymap_verify_item(keymap, "SCREEN_OT_region_scale", EVT_ACTIONZONE_REGION, 0, 0, 0);
+	kmi = WM_keymap_add_item(keymap, "SCREEN_OT_screen_full_area", EVT_ACTIONZONE_FULLSCREEN, 0, 0, 0);
+	RNA_boolean_set(kmi->ptr, "use_hide_panels", true);
 	/* area move after action zones */
 	WM_keymap_verify_item(keymap, "SCREEN_OT_area_move", LEFTMOUSE, KM_PRESS, 0, 0);
 	
@@ -4253,8 +4280,6 @@ void ED_keymap_screen(wmKeyConfig *keyconf)
 	WM_keymap_add_item(keymap, "SCREEN_OT_screen_full_area", DOWNARROWKEY, KM_PRESS, KM_CTRL, 0);
 	WM_keymap_add_item(keymap, "SCREEN_OT_screen_full_area", SPACEKEY, KM_PRESS, KM_SHIFT, 0);
 	kmi = WM_keymap_add_item(keymap, "SCREEN_OT_screen_full_area", F10KEY, KM_PRESS, KM_ALT, 0);
-	RNA_boolean_set(kmi->ptr, "use_hide_panels", true);
-	kmi = WM_keymap_add_item(keymap, "SCREEN_OT_screen_full_area", EVT_ACTIONZONE_FULLSCREEN, 0, 0, 0);
 	RNA_boolean_set(kmi->ptr, "use_hide_panels", true);
 
 	WM_keymap_add_item(keymap, "SCREEN_OT_screenshot", F3KEY, KM_PRESS, KM_CTRL, 0);

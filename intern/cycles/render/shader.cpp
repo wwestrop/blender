@@ -15,7 +15,6 @@
  */
 
 #include "background.h"
-#include "blackbody.h"
 #include "device.h"
 #include "graph.h"
 #include "light.h"
@@ -31,6 +30,8 @@
 #include "util_foreach.h"
 
 CCL_NAMESPACE_BEGIN
+
+vector<float> ShaderManager::beckmann_table;
 
 /* Beckmann sampling precomputed table, see bsdf_microfacet.h */
 
@@ -146,7 +147,6 @@ Shader::Shader()
 	has_surface_transparent = false;
 	has_surface_emission = false;
 	has_surface_bssrdf = false;
-	has_converter_blackbody = false;
 	has_volume = false;
 	has_displacement = false;
 	has_bssrdf_bump = false;
@@ -240,7 +240,6 @@ void Shader::tag_used(Scene *scene)
 ShaderManager::ShaderManager()
 {
 	need_update = true;
-	blackbody_table_offset = TABLE_OFFSET_INVALID;
 	beckmann_table_offset = TABLE_OFFSET_INVALID;
 }
 
@@ -251,6 +250,8 @@ ShaderManager::~ShaderManager()
 ShaderManager *ShaderManager::create(Scene *scene, int shadingsystem)
 {
 	ShaderManager *manager;
+
+	(void)shadingsystem;  /* Ignored when built without OSL. */
 
 #ifdef WITH_OSL
 	if(shadingsystem == SHADINGSYSTEM_OSL)
@@ -321,7 +322,10 @@ void ShaderManager::device_update_shaders_used(Scene *scene)
 		scene->shaders[light->shader]->used = true;
 }
 
-void ShaderManager::device_update_common(Device *device, DeviceScene *dscene, Scene *scene, Progress& progress)
+void ShaderManager::device_update_common(Device *device,
+                                         DeviceScene *dscene,
+                                         Scene *scene,
+                                         Progress& /*progress*/)
 {
 	device->tex_free(dscene->shader_flag);
 	dscene->shader_flag.clear();
@@ -332,7 +336,6 @@ void ShaderManager::device_update_common(Device *device, DeviceScene *dscene, Sc
 	uint shader_flag_size = scene->shaders.size()*4;
 	uint *shader_flag = dscene->shader_flag.resize(shader_flag_size);
 	uint i = 0;
-	bool has_converter_blackbody = false;
 	bool has_volumes = false;
 
 	foreach(Shader *shader, scene->shaders) {
@@ -359,8 +362,6 @@ void ShaderManager::device_update_common(Device *device, DeviceScene *dscene, Sc
 			flag |= SD_HETEROGENEOUS_VOLUME;
 		if(shader->has_bssrdf_bump)
 			flag |= SD_HAS_BSSRDF_BUMP;
-		if(shader->has_converter_blackbody)
-			has_converter_blackbody = true;
 		if(shader->volume_sampling_method == VOLUME_SAMPLING_EQUIANGULAR)
 			flag |= SD_VOLUME_EQUIANGULAR;
 		if(shader->volume_sampling_method == VOLUME_SAMPLING_MULTIPLE_IMPORTANCE)
@@ -384,26 +385,16 @@ void ShaderManager::device_update_common(Device *device, DeviceScene *dscene, Sc
 
 	device->tex_alloc("__shader_flag", dscene->shader_flag);
 
-	/* blackbody lookup table */
+	/* lookup tables */
 	KernelTables *ktables = &dscene->data.tables;
-	
-	if(has_converter_blackbody && blackbody_table_offset == TABLE_OFFSET_INVALID) {
-		if(blackbody_table.size() == 0) {
-			blackbody_table = blackbody_table_build();
-		}
-		blackbody_table_offset = scene->lookup_tables->add_table(dscene, blackbody_table);
-		
-		ktables->blackbody_offset = (int)blackbody_table_offset;
-	}
-	else if(!has_converter_blackbody && blackbody_table_offset != TABLE_OFFSET_INVALID) {
-		scene->lookup_tables->remove_table(blackbody_table_offset);
-		blackbody_table_offset = TABLE_OFFSET_INVALID;
-	}
 
 	/* beckmann lookup table */
 	if(beckmann_table_offset == TABLE_OFFSET_INVALID) {
 		if(beckmann_table.size() == 0) {
-			beckmann_table_build(beckmann_table);
+			thread_scoped_lock lock(lookup_table_mutex);
+			if(beckmann_table.size() == 0) {
+				beckmann_table_build(beckmann_table);
+			}
 		}
 		beckmann_table_offset = scene->lookup_tables->add_table(dscene, beckmann_table);
 		ktables->beckmann_offset = (int)beckmann_table_offset;
@@ -416,11 +407,6 @@ void ShaderManager::device_update_common(Device *device, DeviceScene *dscene, Sc
 
 void ShaderManager::device_free_common(Device *device, DeviceScene *dscene, Scene *scene)
 {
-	if(blackbody_table_offset != TABLE_OFFSET_INVALID) {
-		scene->lookup_tables->remove_table(blackbody_table_offset);
-		blackbody_table_offset = TABLE_OFFSET_INVALID;
-	}
-
 	if(beckmann_table_offset != TABLE_OFFSET_INVALID) {
 		scene->lookup_tables->remove_table(beckmann_table_offset);
 		beckmann_table_offset = TABLE_OFFSET_INVALID;

@@ -553,8 +553,9 @@ void UI_editsource_active_but_test(uiBut *but)
 	BLI_ghash_insert(ui_editsource_info->hash, but, but_store);
 }
 
-static int editsource_text_edit(bContext *C, wmOperator *op,
-                                char filepath[FILE_MAX], int line)
+static int editsource_text_edit(
+        bContext *C, wmOperator *op,
+        char filepath[FILE_MAX], int line)
 {
 	struct Main *bmain = CTX_data_main(C);
 	Text *text;
@@ -613,6 +614,7 @@ static int editsource_exec(bContext *C, wmOperator *op)
 
 		/* redraw and get active button python info */
 		ED_region_do_draw(C, ar);
+		ar->do_draw = false;
 
 		for (BLI_ghashIterator_init(&ghi, ui_editsource_info->hash);
 		     BLI_ghashIterator_done(&ghi) == false;

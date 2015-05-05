@@ -2028,7 +2028,8 @@ static void rna_def_struct_function_call_impl_cpp(FILE *f, StructRNA *srna, Func
 
 	if ((func->flag & FUNC_NO_SELF) == 0) {
 		WRITE_COMMA;
-		if (dsrna->dnaname) fprintf(f, "(::%s *) this->ptr.data", dsrna->dnaname);
+		if (dsrna->dnafromprop) fprintf(f, "(::%s *) this->ptr.data", dsrna->dnafromname);
+		else if (dsrna->dnaname) fprintf(f, "(::%s *) this->ptr.data", dsrna->dnaname);
 		else fprintf(f, "(::%s *) this->ptr.data", srna->identifier);
 	}
 	else if (func->flag & FUNC_USE_SELF_TYPE) {
@@ -2223,7 +2224,8 @@ static void rna_def_function_funcs(FILE *f, StructDefRNA *dsrna, FunctionDefRNA 
 	}
 
 	if ((func->flag & FUNC_NO_SELF) == 0) {
-		if (dsrna->dnaname) fprintf(f, "\tstruct %s *_self;\n", dsrna->dnaname);
+		if (dsrna->dnafromprop) fprintf(f, "\tstruct %s *_self;\n", dsrna->dnafromname);
+		else if (dsrna->dnaname) fprintf(f, "\tstruct %s *_self;\n", dsrna->dnaname);
 		else fprintf(f, "\tstruct %s *_self;\n", srna->identifier);
 	}
 	else if (func->flag & FUNC_USE_SELF_TYPE) {
@@ -2275,7 +2277,8 @@ static void rna_def_function_funcs(FILE *f, StructDefRNA *dsrna, FunctionDefRNA 
 	}
 	
 	if ((func->flag & FUNC_NO_SELF) == 0) {
-		if (dsrna->dnaname) fprintf(f, "\t_self = (struct %s *)_ptr->data;\n", dsrna->dnaname);
+		if (dsrna->dnafromprop) fprintf(f, "\t_self = (struct %s *)_ptr->data;\n", dsrna->dnafromname);
+		else if (dsrna->dnaname) fprintf(f, "\t_self = (struct %s *)_ptr->data;\n", dsrna->dnaname);
 		else fprintf(f, "\t_self = (struct %s *)_ptr->data;\n", srna->identifier);
 	}
 	else if (func->flag & FUNC_USE_SELF_TYPE) {
@@ -2676,7 +2679,8 @@ static void rna_generate_static_parameter_prototypes(FILE *f, StructRNA *srna, F
 
 	if ((func->flag & FUNC_NO_SELF) == 0) {
 		if (!first) fprintf(f, ", ");
-		if (dsrna->dnaname) fprintf(f, "struct %s *_self", dsrna->dnaname);
+		if (dsrna->dnafromprop) fprintf(f, "struct %s *_self", dsrna->dnafromname);
+		else if (dsrna->dnaname) fprintf(f, "struct %s *_self", dsrna->dnaname);
 		else fprintf(f, "struct %s *_self", srna->identifier);
 		first = 0;
 	}
@@ -3764,7 +3768,7 @@ static const char *cpp_classes = ""
 "\n"
 "class DefaultCollectionFunctions {\n"
 "public:\n"
-"	DefaultCollectionFunctions(const PointerRNA &p) {}\n"
+"	DefaultCollectionFunctions(const PointerRNA & /*p*/) {}\n"
 "};\n"
 "\n"
 "\n";

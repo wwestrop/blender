@@ -432,7 +432,7 @@ bool id_single_user(bContext *C, ID *id, PointerRNA *ptr, PropertyRNA *prop)
 		if (RNA_property_editable(ptr, prop)) {
 			if (id_copy(id, &newid, false) && newid) {
 				/* copy animation actions too */
-				BKE_copy_animdata_id_action(id);
+				BKE_animdata_copy_id_action(id);
 				/* us is 1 by convention, but RNA_property_pointer_set
 				 * will also increment it, so set it to zero */
 				newid->us = 0;
@@ -785,7 +785,7 @@ static void id_copy_animdata(ID *id, const bool do_action)
 	
 	if (adt) {
 		IdAdtTemplate *iat = (IdAdtTemplate *)id;
-		iat->adt = BKE_copy_animdata(iat->adt, do_action); /* could be set to false, need to investigate */
+		iat->adt = BKE_animdata_copy(iat->adt, do_action); /* could be set to false, need to investigate */
 	}
 }
 
@@ -865,18 +865,24 @@ static void BKE_library_free(Library *lib)
 
 static void (*free_windowmanager_cb)(bContext *, wmWindowManager *) = NULL;
 
-void set_free_windowmanager_cb(void (*func)(bContext *C, wmWindowManager *) )
+void BKE_library_callback_free_window_manager_set(void (*func)(bContext *C, wmWindowManager *) )
 {
 	free_windowmanager_cb = func;
 }
 
 static void (*free_notifier_reference_cb)(const void *) = NULL;
 
-void set_free_notifier_reference_cb(void (*func)(const void *) )
+void BKE_library_callback_free_notifier_reference_set(void (*func)(const void *) )
 {
 	free_notifier_reference_cb = func;
 }
 
+static void (*free_editor_id_reference_cb)(const ID *) = NULL;
+
+void BKE_library_callback_free_editor_id_reference_set(void (*func)(const ID *))
+{
+	free_editor_id_reference_cb = func;
+}
 
 static void animdata_dtar_clear_cb(ID *UNUSED(id), AnimData *adt, void *userdata)
 {
@@ -1034,8 +1040,13 @@ void BKE_libblock_free_ex(Main *bmain, void *idv, bool do_id_user)
 	/* avoid notifying on removed data */
 	BKE_main_lock(bmain);
 
-	if (free_notifier_reference_cb)
+	if (free_notifier_reference_cb) {
 		free_notifier_reference_cb(id);
+	}
+
+	if (free_editor_id_reference_cb) {
+		free_editor_id_reference_cb(id);
+	}
 
 	BLI_remlink(lb, id);
 

@@ -19,6 +19,7 @@
 # <pep8 compliant>
 import bpy
 from bpy.types import Header, Menu, Panel
+from rna_prop_ui import PropertyPanel
 from bl_ui.properties_grease_pencil_common import GreasePencilDataPanel, GreasePencilToolsPanel
 from bpy.app.translations import pgettext_iface as iface_
 
@@ -206,6 +207,7 @@ class SEQUENCER_MT_view(Menu):
         if is_preview:
             if st.display_mode == 'IMAGE':
                 layout.prop(st, "show_safe_areas")
+                layout.prop(st, "show_metadata")
             elif st.display_mode == 'WAVEFORM':
                 layout.prop(st, "show_separate_color")
 
@@ -472,7 +474,7 @@ class SEQUENCER_PT_edit(SequencerButtonsPanel, Panel):
         split.label(text="Type:")
         split.prop(strip, "type", text="")
 
-        if strip.type not in {'SOUND'}:
+        if strip.type != 'SOUND':
             split = layout.split(percentage=0.3)
             split.label(text="Blend:")
             split.prop(strip, "blend_type", text="")
@@ -658,6 +660,7 @@ class SEQUENCER_PT_input(SequencerButtonsPanel, Panel):
 
     def draw(self, context):
         layout = self.layout
+        scene = context.scene
 
         strip = act_strip(context)
 
@@ -671,7 +674,7 @@ class SEQUENCER_PT_input(SequencerButtonsPanel, Panel):
 
             # Current element for the filename
 
-            elem = strip.strip_elem_from_frame(context.scene.frame_current)
+            elem = strip.strip_elem_from_frame(scene.frame_current)
             if elem:
                 split = layout.split(percentage=0.2)
                 split.label(text="File:")
@@ -716,6 +719,19 @@ class SEQUENCER_PT_input(SequencerButtonsPanel, Panel):
         col.label(text="Trim Duration (soft):")
         col.prop(strip, "frame_offset_start", text="Start")
         col.prop(strip, "frame_offset_end", text="End")
+
+        if scene.render.use_multiview and seq_type in {'IMAGE', 'MOVIE'}:
+            layout.prop(strip, "use_multiview")
+
+            col = layout.column()
+            col.active = strip.use_multiview
+
+            col.label(text="Views Format:")
+            col.row().prop(strip, "views_format", expand=True)
+
+            box = col.box()
+            box.active = strip.views_format == 'STEREO_3D'
+            box.template_image_stereo_3d(strip.stereo_3d_format)
 
 
 class SEQUENCER_PT_sound(SequencerButtonsPanel, Panel):
@@ -933,23 +949,13 @@ class SEQUENCER_PT_proxy(SequencerButtonsPanel, Panel):
                 if proxy.use_proxy_custom_file:
                     flow.prop(proxy, "filepath")
 
-            layout.label("Enabled Proxies:")
-            enabled = ""
             row = layout.row()
-            if (proxy.build_25):
-                enabled += "25% "
-            if (proxy.build_50):
-                enabled += "50% "
-            if (proxy.build_75):
-                enabled += "75% "
-            if (proxy.build_100):
-                enabled += "100% "
+            row.prop(strip.proxy, "build_25")
+            row.prop(strip.proxy, "build_50")
+            row.prop(strip.proxy, "build_75")
+            row.prop(strip.proxy, "build_100")
 
-            row.label(enabled)
-            if (proxy.use_overwrite):
-                layout.label("Overwrite On")
-            else:
-                layout.label("Overwrite Off")
+            layout.prop(proxy, "use_overwrite")
 
             col = layout.column()
             col.label(text="Build JPEG quality")
@@ -1105,6 +1111,12 @@ class SEQUENCER_PT_grease_pencil_tools(GreasePencilToolsPanel, SequencerButtonsP
     # NOTE: this is just a wrapper around the generic GP tools panel
     # It contains access to some essential tools usually found only in
     # toolbar, which doesn't exist here...
+
+
+class SEQUENCER_PT_custom_props(SequencerButtonsPanel, PropertyPanel, Panel):
+    COMPAT_ENGINES = {'BLENDER_RENDER', 'BLENDER_GAME'}
+    _context_path = "scene.sequence_editor.active_strip"
+    _property_type = (bpy.types.Sequence,)
 
 
 if __name__ == "__main__":  # only for live edit.

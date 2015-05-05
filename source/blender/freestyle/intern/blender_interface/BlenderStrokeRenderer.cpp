@@ -126,7 +126,7 @@ BlenderStrokeRenderer::BlenderStrokeRenderer(Render *re, int render_count) : Str
 	BKE_scene_set_background(freestyle_bmain, freestyle_scene);
 
 	// Camera
-	Object *object_camera = BKE_object_add(freestyle_bmain, freestyle_scene, OB_CAMERA);
+	Object *object_camera = BKE_object_add(freestyle_bmain, freestyle_scene, OB_CAMERA, NULL);
 
 	Camera *camera = (Camera *)object_camera->data;
 	camera->type = CAM_ORTHO;
@@ -950,7 +950,7 @@ Object *BlenderStrokeRenderer::NewMesh() const
 	return ob;
 }
 
-Render *BlenderStrokeRenderer::RenderScene(Render *re, bool render)
+Render *BlenderStrokeRenderer::RenderScene(Render * /*re*/, bool render)
 {
 	Camera *camera = (Camera *)freestyle_scene->camera->data;
 	if (camera->clipend < _z)

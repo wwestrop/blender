@@ -53,13 +53,11 @@ struct wmEvent;
 struct wmEventHandler;
 struct wmGesture;
 struct wmJob;
-struct wmNotifier;
 struct wmOperatorType;
 struct wmOperator;
 struct rcti;
 struct PointerRNA;
 struct PropertyRNA;
-struct EnumPropertyItem;
 struct MenuType;
 struct wmDropBox;
 struct wmDrag;
@@ -105,6 +103,7 @@ void		WM_window_open_temp	(struct bContext *C, struct rcti *position, int type);
 			/* returns true if draw method is triple buffer */
 bool		WM_is_draw_triple(struct wmWindow *win);
 
+bool		WM_stereo3d_enabled(struct wmWindow *win, bool only_fullscreen_test);
 
 
 			/* files */
@@ -176,6 +175,7 @@ bool        WM_modal_tweak_exit(const struct wmEvent *event, int tweak_event);
 void		WM_event_add_notifier(const struct bContext *C, unsigned int type, void *reference);
 void		WM_main_add_notifier(unsigned int type, void *reference);
 void		WM_main_remove_notifier_reference(const void *reference);
+void		WM_main_remove_editor_id_reference(const struct ID *id);
 
 			/* reports */
 void        WM_report(const struct bContext *C, ReportType type, const char *message);

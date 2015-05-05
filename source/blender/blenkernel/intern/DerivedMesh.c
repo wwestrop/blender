@@ -295,11 +295,11 @@ void DM_init(DerivedMesh *dm, DerivedMeshType type, int numVerts, int numEdges,
 	dm->dirty = 0;
 
 	/* don't use CustomData_reset(...); because we dont want to touch customdata */
-	fill_vn_i(dm->vertData.typemap, CD_NUMTYPES, -1);
-	fill_vn_i(dm->edgeData.typemap, CD_NUMTYPES, -1);
-	fill_vn_i(dm->faceData.typemap, CD_NUMTYPES, -1);
-	fill_vn_i(dm->loopData.typemap, CD_NUMTYPES, -1);
-	fill_vn_i(dm->polyData.typemap, CD_NUMTYPES, -1);
+	copy_vn_i(dm->vertData.typemap, CD_NUMTYPES, -1);
+	copy_vn_i(dm->edgeData.typemap, CD_NUMTYPES, -1);
+	copy_vn_i(dm->faceData.typemap, CD_NUMTYPES, -1);
+	copy_vn_i(dm->loopData.typemap, CD_NUMTYPES, -1);
+	copy_vn_i(dm->polyData.typemap, CD_NUMTYPES, -1);
 }
 
 void DM_from_template(DerivedMesh *dm, DerivedMesh *source, DerivedMeshType type,
@@ -931,7 +931,7 @@ DerivedMesh *mesh_create_derived_for_modifier(Scene *scene, Object *ob,
                                               ModifierData *md, int build_shapekey_layers)
 {
 	Mesh *me = ob->data;
-	ModifierTypeInfo *mti = modifierType_getInfo(md->type);
+	const ModifierTypeInfo *mti = modifierType_getInfo(md->type);
 	DerivedMesh *dm;
 	KeyBlock *kb;
 
@@ -1011,8 +1011,9 @@ static float (*get_orco_coords_dm(Object *ob, BMEditMesh *em, int layer, int *fr
 			ClothModifierData *clmd = (ClothModifierData *)modifiers_findByType(ob, eModifierType_Cloth);
 			KeyBlock *kb = BKE_keyblock_from_key(BKE_key_from_object(ob), clmd->sim_parms->shapekey_rest);
 
-			if (kb->data)
+			if (kb && kb->data) {
 				return kb->data;
+			}
 		}
 
 		return NULL;
@@ -1275,7 +1276,7 @@ static void calc_weightpaint_vert_array(Object *ob, DerivedMesh *dm, int const d
 		else {
 			weightpaint_color(col, dm_wcinfo, 0.0f);
 		}
-		fill_vn_i((int *)r_wtcol_v, numVerts, *((int *)col));
+		copy_vn_i((int *)r_wtcol_v, numVerts, *((int *)col));
 	}
 }
 
@@ -1585,7 +1586,7 @@ static void mesh_calc_modifiers(Scene *scene, Object *ob, float (*inputVertexCos
 		
 		/* Apply all leading deforming modifiers */
 		for (; md; md = md->next, curr = curr->next) {
-			ModifierTypeInfo *mti = modifierType_getInfo(md->type);
+			const ModifierTypeInfo *mti = modifierType_getInfo(md->type);
 
 			md->scene = scene;
 			
@@ -1639,7 +1640,7 @@ static void mesh_calc_modifiers(Scene *scene, Object *ob, float (*inputVertexCos
 	clothorcodm = NULL;
 
 	for (; md; md = md->next, curr = curr->next) {
-		ModifierTypeInfo *mti = modifierType_getInfo(md->type);
+		const ModifierTypeInfo *mti = modifierType_getInfo(md->type);
 
 		md->scene = scene;
 
@@ -1938,7 +1939,7 @@ static void mesh_calc_modifiers(Scene *scene, Object *ob, float (*inputVertexCos
 		DM_calc_loop_normals(finaldm, do_loop_normals, loop_normals_split_angle);
 	}
 
-	{
+	if (sculpt_dyntopo == false) {
 		DM_ensure_tessface(finaldm);
 
 		/* without this, drawing ngon tri's faces will show ugly tessellated face
@@ -2000,7 +2001,7 @@ float (*editbmesh_get_vertex_cos(BMEditMesh *em, int *r_numVerts))[3]
 
 bool editbmesh_modifier_is_enabled(Scene *scene, ModifierData *md, DerivedMesh *dm)
 {
-	ModifierTypeInfo *mti = modifierType_getInfo(md->type);
+	const ModifierTypeInfo *mti = modifierType_getInfo(md->type);
 	int required_mode = eModifierMode_Realtime | eModifierMode_Editmode;
 
 	if (!modifier_isEnabled(scene, md, required_mode)) return 0;
@@ -2059,7 +2060,7 @@ static void editbmesh_calc_modifiers(Scene *scene, Object *ob, BMEditMesh *em, D
 
 	curr = datamasks;
 	for (i = 0; md; i++, md = md->next, curr = curr->next) {
-		ModifierTypeInfo *mti = modifierType_getInfo(md->type);
+		const ModifierTypeInfo *mti = modifierType_getInfo(md->type);
 
 		md->scene = scene;
 		
@@ -2347,7 +2348,7 @@ static CustomDataMask object_get_datamask(const Scene *scene, Object *ob)
 
 	if (ob == actob) {
 		/* check if we need tfaces & mcols due to face select or texture paint */
-		if (BKE_paint_select_face_test(ob) || (ob->mode & OB_MODE_TEXTURE_PAINT)) {
+		if ((ob->mode & OB_MODE_TEXTURE_PAINT) || BKE_paint_select_face_test(ob)) {
 			mask |= CD_MASK_MTFACE | CD_MASK_MCOL;
 		}
 

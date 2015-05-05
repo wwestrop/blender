@@ -226,7 +226,7 @@ static void update_pyconstraint_cb(void *arg1, void *arg2)
 /* helper function for add_constriant - sets the last target for the active constraint */
 static void set_constraint_nth_target(bConstraint *con, Object *target, const char subtarget[], int index)
 {
-	bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
+	const bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
 	ListBase targets = {NULL, NULL};
 	bConstraintTarget *ct;
 	int num_targets, i;
@@ -262,7 +262,7 @@ static void set_constraint_nth_target(bConstraint *con, Object *target, const ch
 
 static void test_constraint(Object *owner, bPoseChannel *pchan, bConstraint *con, int type)
 {
-	bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
+	const bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
 	ListBase targets = {NULL, NULL};
 	bConstraintTarget *ct;
 	bool check_targets = true;
@@ -1662,7 +1662,7 @@ static short get_new_constraint_target(bContext *C, int con_type, Object **tar_o
 		Object *obt;
 		
 		/* add new target object */
-		obt = BKE_object_add(bmain, scene, OB_EMPTY);
+		obt = BKE_object_add(bmain, scene, OB_EMPTY, NULL);
 		
 		/* set layers OK */
 		newbase = BASACT;

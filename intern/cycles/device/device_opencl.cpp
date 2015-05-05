@@ -28,6 +28,7 @@
 #include "buffers.h"
 
 #include "util_foreach.h"
+#include "util_logging.h"
 #include "util_map.h"
 #include "util_math.h"
 #include "util_md5.h"
@@ -423,7 +424,7 @@ public:
 		int num_base = 0;
 		int total_devices = 0;
 
-		for (int platform = 0; platform < num_platforms; platform++) {
+		for(int platform = 0; platform < num_platforms; platform++) {
 			cl_uint num_devices;
 
 			if(opencl_error(clGetDeviceIDs(platforms[platform], opencl_device_type(), 0, NULL, &num_devices)))
@@ -505,7 +506,7 @@ public:
 	}
 
 	static void CL_CALLBACK context_notify_callback(const char *err_info,
-		const void *private_info, size_t cb, void *user_data)
+		const void * /*private_info*/, size_t /*cb*/, void *user_data)
 	{
 		char name[256];
 		clGetDeviceInfo((cl_device_id)user_data, CL_DEVICE_NAME, sizeof(name), &name, NULL);
@@ -596,7 +597,7 @@ public:
 		return true;
 	}
 
-	bool build_kernel(const string& kernel_path, const string *debug_src = NULL)
+	bool build_kernel(const string& /*kernel_path*/, const string *debug_src = NULL)
 	{
 		string build_options = opencl_kernel_build_options(platform_name, debug_src);
 	
@@ -675,7 +676,7 @@ public:
 		return md5.get_hex();
 	}
 
-	bool load_kernels(bool experimental)
+	bool load_kernels(bool /*experimental*/)
 	{
 		/* verify if device was initialized */
 		if(!device_initialized) {
@@ -854,8 +855,12 @@ public:
 		mem_copy_to(*i->second);
 	}
 
-	void tex_alloc(const char *name, device_memory& mem, InterpolationType interpolation, bool periodic)
+	void tex_alloc(const char *name,
+	               device_memory& mem,
+	               InterpolationType /*interpolation*/,
+	               bool /*periodic*/)
 	{
+		VLOG(1) << "Texture allocate: " << name << ", " << mem.memory_size() << " bytes.";
 		mem_alloc(mem, MEM_READ_ONLY);
 		mem_copy_to(mem);
 		assert(mem_map.find(name) == mem_map.end());
@@ -1092,7 +1097,7 @@ public:
 		}
 	};
 
-	int get_split_task_count(DeviceTask& task)
+	int get_split_task_count(DeviceTask& /*task*/)
 	{
 		return 1;
 	}
@@ -1122,7 +1127,7 @@ bool device_opencl_init(void) {
 	static bool initialized = false;
 	static bool result = false;
 
-	if (initialized)
+	if(initialized)
 		return result;
 
 	initialized = true;
@@ -1157,7 +1162,7 @@ void device_opencl_info(vector<DeviceInfo>& devices)
 	/* devices are numbered consecutively across platforms */
 	int num_base = 0;
 
-	for (int platform = 0; platform < num_platforms; platform++, num_base += num_devices) {
+	for(int platform = 0; platform < num_platforms; platform++, num_base += num_devices) {
 		num_devices = 0;
 		if(clGetDeviceIDs(platform_ids[platform], opencl_device_type(), 0, NULL, &num_devices) != CL_SUCCESS || num_devices == 0)
 			continue;

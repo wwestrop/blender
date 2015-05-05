@@ -87,7 +87,7 @@ ccl_device_inline int stack_load_int(float *stack, uint a)
 	return __float_as_int(stack[a]);
 }
 
-ccl_device_inline float stack_load_int_default(float *stack, uint a, uint value)
+ccl_device_inline int stack_load_int_default(float *stack, uint a, uint value)
 {
 	return (a == (uint)SVM_STACK_INVALID)? (int)value: stack_load_int(stack, a);
 }
@@ -142,6 +142,8 @@ CCL_NAMESPACE_END
 #include "svm_noise.h"
 #include "svm_texture.h"
 
+#include "svm_math_util.h"
+
 #include "svm_attribute.h"
 #include "svm_gradient.h"
 #include "svm_blackbody.h"
@@ -164,7 +166,6 @@ CCL_NAMESPACE_END
 #include "svm_mapping.h"
 #include "svm_normal.h"
 #include "svm_wave.h"
-#include "svm_math_util.h"
 #include "svm_math.h"
 #include "svm_mix.h"
 #include "svm_ramp.h"

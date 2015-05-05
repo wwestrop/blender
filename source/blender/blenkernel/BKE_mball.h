@@ -32,7 +32,6 @@
  *  \since March 2001
  *  \author nzc
  */
-struct EvaluationContext;
 struct Main;
 struct MetaBall;
 struct Object;
@@ -45,8 +44,6 @@ struct MetaBall *BKE_mball_add(struct Main *bmain, const char *name);
 struct MetaBall *BKE_mball_copy(struct MetaBall *mb);
 
 void BKE_mball_make_local(struct MetaBall *mb);
-
-void BKE_mball_cubeTable_free(void);
 
 bool BKE_mball_is_basis_for(struct Object *ob1, struct Object *ob2);
 bool BKE_mball_is_basis(struct Object *ob);

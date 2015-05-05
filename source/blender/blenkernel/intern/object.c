@@ -234,7 +234,7 @@ void BKE_object_modifier_hook_reset(Object *ob, HookModifierData *hmd)
 
 bool BKE_object_support_modifier_type_check(Object *ob, int modifier_type)
 {
-	ModifierTypeInfo *mti;
+	const ModifierTypeInfo *mti;
 
 	mti = modifierType_getInfo(modifier_type);
 
@@ -408,7 +408,7 @@ void BKE_object_free_ex(Object *ob, bool do_id_user)
 	ob->iuser = NULL;
 	if (ob->bb) MEM_freeN(ob->bb); 
 	ob->bb = NULL;
-	if (ob->adt) BKE_free_animdata((ID *)ob);
+	if (ob->adt) BKE_animdata_free((ID *)ob);
 	if (ob->poselib) ob->poselib->id.us--;
 	if (ob->gpd) ((ID *)ob->gpd)->us--;
 	if (ob->defbase.first)
@@ -434,7 +434,7 @@ void BKE_object_free_ex(Object *ob, bool do_id_user)
 	if (ob->bsoft) bsbFree(ob->bsoft);
 	if (ob->gpulamp.first) GPU_lamp_free(ob);
 
-	BKE_free_sculptsession(ob);
+	BKE_sculptsession_free(ob);
 
 	if (ob->pc_ids.first) BLI_freelistN(&ob->pc_ids);
 
@@ -531,7 +531,7 @@ void BKE_object_unlink(Object *ob)
 			bPoseChannel *pchan;
 			for (pchan = obt->pose->chanbase.first; pchan; pchan = pchan->next) {
 				for (con = pchan->constraints.first; con; con = con->next) {
-					bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
+					const bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
 					ListBase targets = {NULL, NULL};
 					bConstraintTarget *ct;
 					
@@ -562,7 +562,7 @@ void BKE_object_unlink(Object *ob)
 		sca_remove_ob_poin(obt, ob);
 		
 		for (con = obt->constraints.first; con; con = con->next) {
-			bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
+			const bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
 			ListBase targets = {NULL, NULL};
 			bConstraintTarget *ct;
 			
@@ -808,34 +808,11 @@ void BKE_object_unlink(Object *ob)
 						}
 					}
 				}
-				else if (sl->spacetype == SPACE_OUTLINER) {
-					SpaceOops *so = (SpaceOops *)sl;
-
-					if (so->treestore) {
-						TreeStoreElem *tselem;
-						BLI_mempool_iter iter;
-						BLI_mempool_iternew(so->treestore, &iter);
-						while ((tselem = BLI_mempool_iterstep(&iter))) {
-							if (tselem->id == (ID *)ob) tselem->id = NULL;
-						}
-					}
+#if 0
+				else if (ELEM(sl->spacetype, SPACE_OUTLINER, SPACE_BUTS, SPACE_NODE)) {
+					/* now handled by WM_main_remove_editor_id_reference */
 				}
-				else if (sl->spacetype == SPACE_BUTS) {
-					SpaceButs *sbuts = (SpaceButs *)sl;
-
-					if (sbuts->pinid == (ID *)ob) {
-						sbuts->flag &= ~SB_PIN_CONTEXT;
-						sbuts->pinid = NULL;
-					}
-				}
-				else if (sl->spacetype == SPACE_NODE) {
-					SpaceNode *snode = (SpaceNode *)sl;
-
-					if (snode->from == (ID *)ob) {
-						snode->flag &= ~SNODE_PIN;
-						snode->from = NULL;
-					}
-				}
+#endif
 			}
 
 			sa = sa->next;
@@ -938,26 +915,6 @@ bool BKE_object_exists_check(Object *obtest)
 
 /* *************************************************** */
 
-void *BKE_object_obdata_add_from_type(Main *bmain, int type)
-{
-	switch (type) {
-		case OB_MESH:      return BKE_mesh_add(bmain, "Mesh");
-		case OB_CURVE:     return BKE_curve_add(bmain, "Curve", OB_CURVE);
-		case OB_SURF:      return BKE_curve_add(bmain, "Surf", OB_SURF);
-		case OB_FONT:      return BKE_curve_add(bmain, "Text", OB_FONT);
-		case OB_MBALL:     return BKE_mball_add(bmain, "Meta");
-		case OB_CAMERA:    return BKE_camera_add(bmain, "Camera");
-		case OB_LAMP:      return BKE_lamp_add(bmain, "Lamp");
-		case OB_LATTICE:   return BKE_lattice_add(bmain, "Lattice");
-		case OB_ARMATURE:  return BKE_armature_add(bmain, "Armature");
-		case OB_SPEAKER:   return BKE_speaker_add(bmain, "Speaker");
-		case OB_EMPTY:     return NULL;
-		default:
-			printf("BKE_object_obdata_add_from_type: Internal error, bad type: %d\n", type);
-			return NULL;
-	}
-}
-
 static const char *get_obdata_defname(int type)
 {
 	switch (type) {
@@ -975,6 +932,30 @@ static const char *get_obdata_defname(int type)
 		default:
 			printf("get_obdata_defname: Internal error, bad type: %d\n", type);
 			return DATA_("Empty");
+	}
+}
+
+void *BKE_object_obdata_add_from_type(Main *bmain, int type, const char *name)
+{
+	if (name == NULL) {
+		name = get_obdata_defname(type);
+	}
+
+	switch (type) {
+		case OB_MESH:      return BKE_mesh_add(bmain, name);
+		case OB_CURVE:     return BKE_curve_add(bmain, name, OB_CURVE);
+		case OB_SURF:      return BKE_curve_add(bmain, name, OB_SURF);
+		case OB_FONT:      return BKE_curve_add(bmain, name, OB_FONT);
+		case OB_MBALL:     return BKE_mball_add(bmain, name);
+		case OB_CAMERA:    return BKE_camera_add(bmain, name);
+		case OB_LAMP:      return BKE_lamp_add(bmain, name);
+		case OB_LATTICE:   return BKE_lattice_add(bmain, name);
+		case OB_ARMATURE:  return BKE_armature_add(bmain, name);
+		case OB_SPEAKER:   return BKE_speaker_add(bmain, name);
+		case OB_EMPTY:     return NULL;
+		default:
+			printf("%s: Internal error, bad type: %d\n", __func__, type);
+			return NULL;
 	}
 }
 
@@ -1048,7 +1029,7 @@ Object *BKE_object_add_only_object(Main *bmain, int type, const char *name)
 	ob->jump_speed = 10.0f;
 	ob->fall_speed = 55.0f;
 	ob->col_group = 0x01;
-	ob->col_mask = 0xff;
+	ob->col_mask = 0xffff;
 
 	/* NT fluid sim defaults */
 	ob->fluidsimSettings = NULL;
@@ -1063,16 +1044,16 @@ Object *BKE_object_add_only_object(Main *bmain, int type, const char *name)
 
 /* general add: to scene, with layer from area and default name */
 /* creates minimum required data, but without vertices etc. */
-Object *BKE_object_add(Main *bmain, Scene *scene, int type)
+Object *BKE_object_add(
+        Main *bmain, Scene *scene,
+        int type, const char *name)
 {
 	Object *ob;
 	Base *base;
-	char name[MAX_ID_NAME];
 
-	BLI_strncpy(name, get_obdata_defname(type), sizeof(name));
 	ob = BKE_object_add_only_object(bmain, type, name);
 
-	ob->data = BKE_object_obdata_add_from_type(bmain, type);
+	ob->data = BKE_object_obdata_add_from_type(bmain, type, name);
 
 	ob->lay = scene->lay;
 	
@@ -1408,7 +1389,7 @@ static void copy_object_pose(Object *obn, Object *ob)
 		chan->flag &= ~(POSE_LOC | POSE_ROT | POSE_SIZE);
 		
 		for (con = chan->constraints.first; con; con = con->next) {
-			bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
+			const bConstraintTypeInfo *cti = BKE_constraint_typeinfo_get(con);
 			ListBase targets = {NULL, NULL};
 			bConstraintTarget *ct;
 			
@@ -1707,7 +1688,7 @@ void BKE_object_copy_proxy_drivers(Object *ob, Object *target)
 		
 		/* add new animdata block */
 		if (!ob->adt)
-			ob->adt = BKE_id_add_animdata(&ob->id);
+			ob->adt = BKE_animdata_add_id(&ob->id);
 		
 		/* make a copy of all the drivers (for now), then correct any links that need fixing */
 		free_fcurves(&ob->adt->drivers);
@@ -1769,8 +1750,7 @@ void BKE_object_make_proxy(Object *ob, Object *target, Object *gob)
 		mul_m4_m4m4(ob->obmat, gob->obmat, target->obmat);
 		if (gob->dup_group) { /* should always be true */
 			float tvec[3];
-			copy_v3_v3(tvec, gob->dup_group->dupli_ofs);
-			mul_mat3_m4_v3(ob->obmat, tvec);
+			mul_v3_mat3_m4v3(tvec, ob->obmat, gob->dup_group->dupli_ofs);
 			sub_v3_v3(ob->obmat[3], tvec);
 		}
 		BKE_object_apply_mat4(ob, ob->obmat, false, true);
@@ -2221,7 +2201,7 @@ static void give_parvert(Object *par, int nr, float vec[3])
 					     md != NULL;
 					     md = md->next)
 					{
-						ModifierTypeInfo *mti = modifierType_getInfo(md->type);
+						const ModifierTypeInfo *mti = modifierType_getInfo(md->type);
 						/* TODO(sergey): Check for disabled modifiers. */
 						if (mti->type != eModifierTypeType_OnlyDeform && md->next != NULL) {
 							use_special_ss_case = false;
@@ -3244,7 +3224,7 @@ void BKE_object_sculpt_modifiers_changed(Object *ob)
 				ss->pbvh = NULL;
 			}
 
-			BKE_free_sculptsession_deformMats(ob->sculpt);
+			BKE_sculptsession_free_deformMats(ob->sculpt);
 		}
 		else {
 			PBVHNode **nodes;
@@ -3674,7 +3654,7 @@ int BKE_object_is_deform_modified(Scene *scene, Object *ob)
 	     md && (flag != (eModifierMode_Render | eModifierMode_Realtime));
 	     md = md->next)
 	{
-		ModifierTypeInfo *mti = modifierType_getInfo(md->type);
+		const ModifierTypeInfo *mti = modifierType_getInfo(md->type);
 		bool can_deform = mti->type == eModifierTypeType_OnlyDeform ||
 		                  is_modifier_animated;
 
@@ -3731,7 +3711,7 @@ void BKE_object_relink(Object *ob)
 	modifiers_foreachIDLink(ob, copy_object__forwardModifierLinks, NULL);
 
 	if (ob->adt)
-		BKE_relink_animdata(ob->adt);
+		BKE_animdata_relink(ob->adt);
 	
 	if (ob->rigidbody_constraint)
 		BKE_rigidbody_relink_constraint(ob->rigidbody_constraint);

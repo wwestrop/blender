@@ -40,14 +40,11 @@
 /* Struct Declarations */
 
 struct ID;
-struct Main;
 struct ListBase;
 struct ARegion;
-struct ARegionType;
 struct ScrArea;
 struct wmEvent;
 struct wmWindow;
-struct wmWindowManager;
 struct wmOperator;
 struct AutoComplete;
 struct bContext;
@@ -58,18 +55,14 @@ struct PointerRNA;
 struct PropertyRNA;
 struct ReportList;
 struct rcti;
-struct rctf;
 struct uiList;
 struct uiStyle;
 struct uiFontStyle;
 struct uiWidgetColors;
-struct ColorBand;
-struct CurveMapping;
 struct Image;
 struct ImageUser;
 struct wmOperatorType;
 struct uiWidgetColors;
-struct Tex;
 struct MTex;
 struct ImBuf;
 struct bNodeTree;
@@ -328,6 +321,11 @@ void UI_draw_safe_areas(
 #define UI_SCROLL_NO_OUTLINE    (1 << 2)
 void UI_draw_widget_scroll(struct uiWidgetColors *wcol, const struct rcti *rect, const struct rcti *slider, int state);
 
+/* Shortening string helper. */
+float UI_text_clip_middle_ex(
+        struct uiFontStyle *fstyle, char *str, float okwidth, const float minwidth,
+        const size_t max_len, const char *rpart_sep);
+
 /* Callbacks
  *
  * UI_block_func_handle_set/ButmFunc are for handling events through a callback.
@@ -492,6 +490,14 @@ bool    UI_but_active_only(const struct bContext *C, struct ARegion *ar, uiBlock
 
 void    UI_but_execute(const struct bContext *C, uiBut *but);
 
+bool UI_but_online_manual_id(
+        const uiBut *but,
+        char *r_str, size_t maxlength)
+        ATTR_WARN_UNUSED_RESULT;
+bool UI_but_online_manual_id_from_active(
+        const struct bContext *C,
+        char *r_str, size_t maxlength)
+        ATTR_WARN_UNUSED_RESULT;
 
 /* Buttons
  *
@@ -684,6 +690,7 @@ void    UI_but_func_drawextra_set(
         void *arg1, void *arg2);
 
 void    UI_but_func_tooltip_set(uiBut *but, uiButToolTipFunc func, void *argN);
+void    UI_but_tooltip_timer_remove(struct bContext *C, uiBut *but);
 
 bool UI_textbutton_activate_rna(const struct bContext *C, struct ARegion *ar,
                                 const void *rna_poin_data, const char *rna_prop_id);
@@ -899,6 +906,9 @@ void uiTemplateGameStates(uiLayout *layout, struct PointerRNA *ptr, const char *
                       PointerRNA *used_ptr, const char *used_propname, int active_state);
 void uiTemplateImage(uiLayout *layout, struct bContext *C, struct PointerRNA *ptr, const char *propname, struct PointerRNA *userptr, bool compact);
 void uiTemplateImageSettings(uiLayout *layout, struct PointerRNA *imfptr, bool color_management);
+void uiTemplateImageStereo3d(uiLayout *layout, struct PointerRNA *stereo3d_format_ptr);
+void uiTemplateImageViews(uiLayout *layout, struct PointerRNA *imaptr);
+void uiTemplateImageFormatViews(uiLayout *layout, PointerRNA *imfptr, PointerRNA *ptr);
 void uiTemplateImageLayers(uiLayout *layout, struct bContext *C, struct Image *ima, struct ImageUser *iuser);
 void uiTemplateImageInfo(uiLayout *layout, struct bContext *C, Image *ima, ImageUser *iuser);
 void uiTemplateRunningJobs(uiLayout *layout, struct bContext *C);

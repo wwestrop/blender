@@ -96,6 +96,7 @@ class PHY_IPhysicsController : public PHY_IController
 		virtual void		SetAngularDamping(float damping)=0;
 		virtual void		SetDamping(float linear, float angular)=0;
 
+		virtual void		RefreshCollisions() = 0;
 		virtual void		SuspendDynamics(bool ghost=false)=0;
 		virtual void		RestoreDynamics()=0;
 
@@ -133,6 +134,7 @@ class PHY_IPhysicsController : public PHY_IController
 
 		virtual bool IsDynamic() = 0;
 		virtual bool IsCompound() = 0;
+		virtual bool IsSuspended() const = 0;
 
 		virtual bool ReinstancePhysicsShape(KX_GameObject *from_gameobj, RAS_MeshObject* from_meshobj) = 0;
 

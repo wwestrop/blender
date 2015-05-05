@@ -516,11 +516,11 @@ macro(SETUP_BLENDER_SORTED_LIBS)
 		bf_ikplugin
 		bf_modifiers
 		bf_bmesh
+		bf_gpu
 		bf_blenkernel
 		bf_physics
 		bf_nodes
 		bf_rna
-		bf_gpu
 		bf_blenloader
 		bf_imbuf
 		bf_blenlib
@@ -959,6 +959,20 @@ macro(remove_strict_flags)
 		# TODO
 	endif()
 
+endmacro()
+
+macro(remove_extra_strict_flags)
+	if(CMAKE_COMPILER_IS_GNUCC)
+		remove_cc_flag("-Wunused-parameter")
+	endif()
+
+	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+		remove_cc_flag("-Wunused-parameter")
+	endif()
+
+	if(MSVC)
+		# TODO
+	endif()
 endmacro()
 
 # note, we can only append flags on a single file so we need to negate the options.
