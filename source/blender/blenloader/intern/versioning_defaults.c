@@ -48,7 +48,7 @@
 
 
 /**
- * Override values in in-memory startup.blend, avoids resaving for small changes.
+ * Override values in in-memory startup.blend, avoids resaving for small changes. Resets user preferences to factory defaults.
  */
 void BLO_update_defaults_userpref_blend(void)
 {
@@ -57,6 +57,9 @@ void BLO_update_defaults_userpref_blend(void)
 	U.uiflag |= USER_ZBUF_CURSOR;
 	U.uiflag |= USER_QUIT_PROMPT;
 	U.uiflag |= USER_CONTINUOUS_MOUSE;
+
+	U.flag |= USER_LMOUSESELECT;
+	U.flag |= USER_TOOLTIPS_PYTHON_SUPRESS;
 
 	U.versions = 1;
 	U.savetime = 2;

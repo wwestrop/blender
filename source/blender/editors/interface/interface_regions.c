@@ -455,7 +455,7 @@ ARegion *ui_tooltip_create(bContext *C, ARegion *butregion, uiBut *but)
 		WM_operator_pystring_abbreviate(str, 32);
 
 		/* operator info */
-		if ((U.flag & USER_TOOLTIPS_PYTHON) == 0) {
+		if ((U.flag & USER_TOOLTIPS_PYTHON_SUPRESS) == 0) {
 			BLI_snprintf(data->lines[data->totline], sizeof(data->lines[0]), TIP_("Python: %s"), str);
 			data->format[data->totline].style = UI_TIP_STYLE_MONO;
 			data->format[data->totline].is_pad = true;
@@ -478,7 +478,7 @@ ARegion *ui_tooltip_create(bContext *C, ARegion *butregion, uiBut *but)
 			}
 		}
 	}
-	if ((U.flag & USER_TOOLTIPS_PYTHON) == 0 && !but->optype && rna_struct.strinfo) {
+	if ((U.flag & USER_TOOLTIPS_PYTHON_SUPRESS) == 0 && !but->optype && rna_struct.strinfo) {
 		if (rna_prop.strinfo) {
 			/* Struct and prop */
 			BLI_snprintf(data->lines[data->totline], sizeof(data->lines[0]),

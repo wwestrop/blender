@@ -601,7 +601,7 @@ typedef enum eUserPref_Flag {
 	USER_FILENOUI			= (1 << 23),
 	USER_NONEGFRAMES		= (1 << 24),
 	USER_TXT_TABSTOSPACES_DISABLE	= (1 << 25),
-	USER_TOOLTIPS_PYTHON    = (1 << 26),
+	USER_TOOLTIPS_PYTHON_SUPRESS    = (1 << 26),
 } eUserPref_Flag;
 
 /* flag */
