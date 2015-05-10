@@ -123,6 +123,38 @@ class INFO_PT_Ribbon_Modelling(Panel):
 
 
 
+class INFO_PT_Ribbon_Material(Panel):
+    bl_category = "Material"
+    bl_context = ""
+    bl_label = "Material"
+    bl_space_type = 'INFO'
+    bl_region_type = 'TOOLS'
+
+    def draw(self, context):
+        # Quick access toolbar (common on all tabs)
+        layout = self.layout
+        layout = quickAccessTools(layout);
+
+        row = layout.row(align=True)
+        row.alignment = 'LEFT'
+        
+        # Materials list. Would be nice to have these visualised in ribbon, rather than text
+        ob = context.object;
+        row.template_list("MATERIAL_UL_matslots", "", ob, "material_slots", ob, "active_material_index", rows=3)
+        col = row.column(align=True)
+        col.operator("object.material_slot_add", icon='ZOOMIN', text="")
+        col.operator("object.material_slot_remove", icon='ZOOMOUT', text="")
+
+        # Selected material preview
+
+
+        # Selected material parameters
+
+
+        row.separator()
+
+
+
 class INFO_PT_Ribbon_Render(Panel):
     bl_category = "Render"
     bl_context = ""
@@ -154,6 +186,7 @@ class INFO_PT_Ribbon_Render(Panel):
         box.prop(rd, "resolution_x", text="X")
         box.prop(rd, "resolution_y", text="Y")
         row.separator()
+
 
 
 class INFO_HT_header(Header):
