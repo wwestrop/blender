@@ -100,7 +100,7 @@ const GHOST_TUns8 *GHOST_SystemPathsX11::getUserDir(int version, const char *ver
 			last_version = version;
 
 			if (home) {
-				user_path = string(home) + "/blender/" + versionstr;
+				user_path = string(home) + "/blender-ribbon-experiment/" + versionstr;
 			}
 			else {
 				home = getenv("HOME");
@@ -108,7 +108,7 @@ const GHOST_TUns8 *GHOST_SystemPathsX11::getUserDir(int version, const char *ver
 				if (home == NULL)
 					home = getpwuid(getuid())->pw_dir;
 
-				user_path = string(home) + "/.config/blender/" + versionstr;
+				user_path = string(home) + "/.config/blender-ribbon-experiment/" + versionstr;
 			}
 		}
 

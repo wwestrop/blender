@@ -216,7 +216,7 @@ static bool get_path_local(char *targetpath, const char *folder_name, const char
  */
 static bool is_portable_install(void)
 {
-	/* detect portable install by the existence of config folder */
+	/* detect portable install by the existence of config folder alongside the binaries */
 	const int ver = BLENDER_VERSION;
 	char path[FILE_MAX];
 
