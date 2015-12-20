@@ -34,6 +34,7 @@
 #include "MEM_guardedalloc.h"
 
 #include "BLI_math.h"
+#include "BLI_rand.h"
 #include "BLI_threads.h"
 #include "BLI_utildefines.h"
 
@@ -75,6 +76,8 @@ extern struct Render R;
 
 
 typedef struct BakeShade {
+	int thread;
+
 	ShadeSample ssamp;
 	ObjectInstanceRen *obi;
 	VlakRen *vlr;
@@ -317,7 +320,7 @@ static void bake_shade(void *handle, Object *ob, ShadeInput *shi, int UNUSED(qua
 		}
 		else {
 			unsigned char *imcol = (unsigned char *)(bs->rect + bs->rectx * y + x);
-			copy_v4_v4_char((char *)imcol, (char *)col);
+			copy_v4_v4_uchar(imcol, col);
 		}
 
 	}
@@ -372,8 +375,8 @@ static void bake_displacement(void *handle, ShadeInput *UNUSED(shi), float dist,
 			bs->vcol->b = col[2];
 		}
 		else {
-			char *imcol = (char *)(bs->rect + bs->rectx * y + x);
-			copy_v4_v4_char(imcol, (char *)col);
+			unsigned char *imcol = (unsigned char *)(bs->rect + bs->rectx * y + x);
+			copy_v4_v4_uchar(imcol, col);
 		}
 	}
 	if (bs->rect_mask) {
@@ -737,6 +740,9 @@ static void bake_single_vertex(BakeShade *bs, VertRen *vert, float u, float v)
 	MLoopCol *basevcol;
 	MLoop *mloop;
 
+	/* per vertex fixed seed */
+	BLI_thread_srandom(bs->thread, vert->index);
+
 	origindex = RE_vertren_get_origindex(bs->obi->obr, vert, 0);
 	if (!origindex || *origindex == ORIGINDEX_NONE)
 		return;
@@ -811,6 +817,9 @@ static void shade_tface(BakeShade *bs)
 	Image *ima = tface->tpage;
 	float vec[4][2];
 	int a, i1, i2, i3;
+
+	/* per face fixed seed */
+	BLI_thread_srandom(bs->thread, vlr->index);
 	
 	/* check valid zspan */
 	if (ima != bs->ima) {
@@ -1037,6 +1046,8 @@ int RE_bake_shade_all_selected(Render *re, int type, Object *actob, short *do_up
 
 	/* get the threads running */
 	for (a = 0; a < re->r.threads; a++) {
+		handles[a].thread = a;
+
 		/* set defaults in handles */
 		handles[a].ssamp.shi[0].lay = re->lay;
 

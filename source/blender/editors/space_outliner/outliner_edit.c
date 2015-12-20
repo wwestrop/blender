@@ -41,7 +41,7 @@
 #include "BLI_utildefines.h"
 #include "BLI_mempool.h"
 
-#include "BLF_translation.h"
+#include "BLT_translation.h"
 
 #include "BKE_animsys.h"
 #include "BKE_context.h"
@@ -220,7 +220,7 @@ static void do_item_rename(ARegion *ar, TreeElement *te, TreeStoreElem *tselem, 
 	else if (tselem->id->lib) {
 		BKE_report(reports, RPT_WARNING, "Cannot edit external libdata");
 	}
-	else if (te->idcode == ID_LI && te->parent) {
+	else if (te->idcode == ID_LI && ((Library *)tselem->id)->parent) {
 		BKE_report(reports, RPT_WARNING, "Cannot edit the path of an indirectly linked library");
 	}
 	else {
@@ -230,7 +230,7 @@ static void do_item_rename(ARegion *ar, TreeElement *te, TreeStoreElem *tselem, 
 }
 
 void item_rename_cb(bContext *C, Scene *UNUSED(scene), TreeElement *te,
-                    TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem)
+                    TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem, void *UNUSED(user_data))
 {
 	ARegion *ar = CTX_wm_region(C);
 	ReportList *reports = CTX_wm_reports(C); // XXX
@@ -287,6 +287,104 @@ void OUTLINER_OT_item_rename(wmOperatorType *ot)
 	
 	ot->invoke = outliner_item_rename;
 	
+	ot->poll = ED_operator_outliner_active;
+}
+
+/* Library delete --------------------------------------------------- */
+
+static void lib_delete(bContext *C, TreeElement *te, TreeStoreElem *tselem, ReportList *reports)
+{
+	Library *lib = (Library *)tselem->id;
+	ListBase *lbarray[MAX_LIBARRAY];
+	int a;
+
+	BLI_assert(te->idcode == ID_LI && lib != NULL);
+	UNUSED_VARS_NDEBUG(te);
+
+	/* We simply set all ID from given lib (including lib itself) to zero user count.
+	 * It is not possible to do a proper cleanup without a save/reload in current master. */
+	a = set_listbasepointers(CTX_data_main(C), lbarray);
+	while (a--) {
+		ListBase *lb = lbarray[a];
+		ID *id;
+
+		for (id = lb->first; id; id = id->next) {
+			if (id->lib == lib) {
+				id_fake_user_clear(id);
+				id->us = 0;
+			}
+		}
+	}
+
+	BKE_reportf(reports, RPT_WARNING,
+	            "Please save and reload .blend file to complete deletion of '%s' library",
+	            ((Library *)tselem->id)->filepath);
+}
+
+void lib_delete_cb(
+        bContext *C, Scene *UNUSED(scene), TreeElement *te,
+        TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem, void *UNUSED(user_data))
+{
+	lib_delete(C, te, tselem, CTX_wm_reports(C));
+}
+
+static int outliner_lib_delete_invoke_do(bContext *C, ReportList *reports, TreeElement *te, const float mval[2])
+{
+	if (mval[1] > te->ys && mval[1] < te->ys + UI_UNIT_Y) {
+		TreeStoreElem *tselem = TREESTORE(te);
+
+		if (te->idcode == ID_LI && tselem->id) {
+			if (((Library *)tselem->id)->parent) {
+				BKE_reportf(reports, RPT_ERROR_INVALID_INPUT,
+				            "Cannot delete indirectly linked library '%s'", ((Library *)tselem->id)->filepath);
+				return OPERATOR_CANCELLED;
+			}
+
+			lib_delete(C, te, tselem, reports);
+			return OPERATOR_FINISHED;
+		}
+	}
+	else {
+		for (te = te->subtree.first; te; te = te->next) {
+			int ret;
+			if ((ret = outliner_lib_delete_invoke_do(C, reports, te, mval))) {
+				return ret;
+			}
+		}
+	}
+
+	return 0;
+}
+
+static int outliner_lib_delete_invoke(bContext *C, wmOperator *op, const wmEvent *event)
+{
+	ARegion *ar = CTX_wm_region(C);
+	SpaceOops *soops = CTX_wm_space_outliner(C);
+	TreeElement *te;
+	float fmval[2];
+
+	BLI_assert(ar && soops);
+
+	UI_view2d_region_to_view(&ar->v2d, event->mval[0], event->mval[1], &fmval[0], &fmval[1]);
+
+	for (te = soops->tree.first; te; te = te->next) {
+		int ret;
+
+		if ((ret = outliner_lib_delete_invoke_do(C, op->reports, te, fmval))) {
+			return ret;
+		}
+	}
+
+	return OPERATOR_CANCELLED;
+}
+
+void OUTLINER_OT_lib_delete(wmOperatorType *ot)
+{
+	ot->name = "Delete Library";
+	ot->idname = "OUTLINER_OT_lib_delete";
+	ot->description = "Delete the library under cursor (needs a save/reload)";
+
+	ot->invoke = outliner_lib_delete_invoke;
 	ot->poll = ED_operator_outliner_active;
 }
 
@@ -370,7 +468,7 @@ int common_restrict_check(bContext *C, Object *ob)
 /* Toggle Visibility ---------------------------------------- */
 
 void object_toggle_visibility_cb(bContext *C, Scene *scene, TreeElement *te,
-                                 TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem)
+                                 TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem, void *UNUSED(user_data))
 {
 	Base *base = (Base *)te->directdata;
 	Object *ob = (Object *)tselem->id;
@@ -386,7 +484,7 @@ void object_toggle_visibility_cb(bContext *C, Scene *scene, TreeElement *te,
 }
 
 void group_toggle_visibility_cb(bContext *UNUSED(C), Scene *scene, TreeElement *UNUSED(te),
-                                TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem)
+                                TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem, void *UNUSED(user_data))
 {
 	Group *group = (Group *)tselem->id;
 	restrictbutton_gr_restrict_flag(scene, group, OB_RESTRICT_VIEW);
@@ -425,7 +523,7 @@ void OUTLINER_OT_visibility_toggle(wmOperatorType *ot)
 /* Toggle Selectability ---------------------------------------- */
 
 void object_toggle_selectability_cb(bContext *UNUSED(C), Scene *scene, TreeElement *te,
-                                    TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem)
+                                    TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem, void *UNUSED(user_data))
 {
 	Base *base = (Base *)te->directdata;
 	
@@ -436,7 +534,7 @@ void object_toggle_selectability_cb(bContext *UNUSED(C), Scene *scene, TreeEleme
 }
 
 void group_toggle_selectability_cb(bContext *UNUSED(C), Scene *scene, TreeElement *UNUSED(te),
-                                   TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem)
+                                   TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem, void *UNUSED(user_data))
 {
 	Group *group = (Group *)tselem->id;
 	restrictbutton_gr_restrict_flag(scene, group, OB_RESTRICT_SELECT);
@@ -473,7 +571,7 @@ void OUTLINER_OT_selectability_toggle(wmOperatorType *ot)
 /* Toggle Renderability ---------------------------------------- */
 
 void object_toggle_renderability_cb(bContext *UNUSED(C), Scene *scene, TreeElement *te,
-                                    TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem)
+                                    TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem, void *UNUSED(user_data))
 {
 	Base *base = (Base *)te->directdata;
 	
@@ -484,7 +582,7 @@ void object_toggle_renderability_cb(bContext *UNUSED(C), Scene *scene, TreeEleme
 }
 
 void group_toggle_renderability_cb(bContext *UNUSED(C), Scene *scene, TreeElement *UNUSED(te),
-                                   TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem)
+                                   TreeStoreElem *UNUSED(tsep), TreeStoreElem *tselem, void *UNUSED(user_data))
 {
 	Group *group = (Group *)tselem->id;
 	restrictbutton_gr_restrict_flag(scene, group, OB_RESTRICT_RENDER);
@@ -789,7 +887,7 @@ static void outliner_find_panel(Scene *UNUSED(scene), ARegion *ar, SpaceOops *so
 	else {
 		/* pop up panel - no previous, or user didn't want search after previous */
 		name[0] = '\0';
-// XXX		if (sbutton(name, 0, sizeof(name)-1, "Find: ") && name[0]) {
+// XXX		if (sbutton(name, 0, sizeof(name) - 1, "Find: ") && name[0]) {
 //			te = outliner_find_name(soops, &soops->tree, name, flags, NULL, &prevFound);
 //		}
 //		else return; /* XXX RETURN! XXX */
@@ -1984,7 +2082,8 @@ void ED_outliner_id_unref(SpaceOops *so, const ID *id)
 		}
 		if (so->treehash && changed) {
 			/* rebuild hash table, because it depends on ids too */
-			BKE_outliner_treehash_rebuild_from_treestore(so->treehash, so->treestore);
+			/* postpone a full rebuild because this can be called many times on-free */
+			so->storeflag |= SO_TREESTORE_REBUILD;
 		}
 	}
 }

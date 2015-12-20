@@ -29,6 +29,7 @@
 CCL_NAMESPACE_BEGIN
 
 class AttributeRequestSet;
+class Scene;
 class Shader;
 class ShaderInput;
 class ShaderOutput;
@@ -82,6 +83,9 @@ enum ShaderNodeSpecialType {
 	SHADER_SPECIAL_TYPE_SCRIPT,
 	SHADER_SPECIAL_TYPE_BACKGROUND,
 	SHADER_SPECIAL_TYPE_IMAGE_SLOT,
+	SHADER_SPECIAL_TYPE_CLOSURE,
+	SHADER_SPECIAL_TYPE_EMISSION,
+	SHADER_SPECIAL_TYPE_BUMP,
 };
 
 /* Enum
@@ -191,12 +195,22 @@ public:
 	virtual void compile(SVMCompiler& compiler) = 0;
 	virtual void compile(OSLCompiler& compiler) = 0;
 
+	/* ** Node optimization ** */
+	/* Check whether the node can be replaced with single constant. */
+	virtual bool constant_fold(ShaderOutput * /*socket*/, float3 * /*optimized_value*/) { return false; }
+
+	/* Simplify settings used by artists to the ones which are simpler to
+	 * evaluate in the kernel but keep the final result unchanged.
+	 */
+	virtual void simplify_settings(Scene * /*scene*/) {};
+
 	virtual bool has_surface_emission() { return false; }
 	virtual bool has_surface_transparent() { return false; }
 	virtual bool has_surface_bssrdf() { return false; }
 	virtual bool has_bssrdf_bump() { return false; }
 	virtual bool has_spatial_varying() { return false; }
 	virtual bool has_object_dependency() { return false; }
+	virtual bool has_integrator_dependency() { return false; }
 
 	vector<ShaderInput*> inputs;
 	vector<ShaderOutput*> outputs;
@@ -206,6 +220,24 @@ public:
 	ShaderBump bump; /* for bump mapping utility */
 	
 	ShaderNodeSpecialType special_type;	/* special node type */
+
+	/* ** Selective nodes compilation ** */
+
+	/* TODO(sergey): More explicitly mention in the function names
+	 * that those functions are for selective compilation only?
+	 */
+
+	/* Nodes are split into several groups, group of level 0 contains
+	 * nodes which are most commonly used, further levels are extension
+	 * of previous one and includes less commonly used nodes.
+	 */
+	virtual int get_group() { return NODE_GROUP_LEVEL_0; }
+
+	/* Node feature are used to disable huge nodes inside the group,
+	 * so it's possible to disable huge nodes inside of the required
+	 * nodes group.
+	 */
+	virtual int get_feature() { return bump == SHADER_BUMP_NONE ? 0 : NODE_FEATURE_BUMP; }
 };
 
 
@@ -226,6 +258,18 @@ public:
 	virtual ShaderNode *clone() const { return new type(*this); } \
 	virtual void compile(SVMCompiler& compiler); \
 	virtual void compile(OSLCompiler& compiler); \
+
+class ShaderNodeIDComparator
+{
+public:
+	bool operator()(const ShaderNode *n1, const ShaderNode *n2) const
+	{
+		return n1->id < n2->id;
+	}
+};
+
+typedef set<ShaderNode*, ShaderNodeIDComparator> ShaderNodeSet;
+typedef map<ShaderNode*, ShaderNode*, ShaderNodeIDComparator> ShaderNodeMap;
 
 /* Graph
  *
@@ -251,18 +295,25 @@ public:
 	void relink(vector<ShaderInput*> inputs, vector<ShaderInput*> outputs, ShaderOutput *output);
 
 	void remove_unneeded_nodes();
-	void finalize(bool do_bump = false, bool do_osl = false);
+	void finalize(Scene *scene,
+	              bool do_bump = false,
+	              bool do_osl = false,
+	              bool do_simplify = false);
+
+	int get_num_closures();
 
 	void dump_graph(const char *filename);
 
 protected:
 	typedef pair<ShaderNode* const, ShaderNode*> NodePair;
 
-	void find_dependencies(set<ShaderNode*>& dependencies, ShaderInput *input);
-	void copy_nodes(set<ShaderNode*>& nodes, map<ShaderNode*, ShaderNode*>& nnodemap);
+	void find_dependencies(ShaderNodeSet& dependencies, ShaderInput *input);
+	void copy_nodes(ShaderNodeSet& nodes, ShaderNodeMap& nnodemap);
 
 	void break_cycles(ShaderNode *node, vector<bool>& visited, vector<bool>& on_stack);
-	void clean();
+	void clean(Scene *scene);
+	void simplify_settings(Scene *scene);
+	void constant_fold();
 	void bump_from_displacement();
 	void refine_bump_nodes();
 	void default_inputs(bool do_osl);

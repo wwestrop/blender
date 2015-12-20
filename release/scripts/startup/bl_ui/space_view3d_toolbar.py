@@ -21,7 +21,8 @@ import bpy
 from bpy.types import Menu, Panel, UIList
 from bl_ui.properties_grease_pencil_common import (
         GreasePencilDrawingToolsPanel,
-        GreasePencilStrokeEditPanel
+        GreasePencilStrokeEditPanel,
+        GreasePencilStrokeSculptPanel
         )
 from bl_ui.properties_paint_common import (
         UnifiedPaintPanel,
@@ -315,7 +316,7 @@ class VIEW3D_PT_tools_meshedit(View3DPanel, Panel):
         row.operator("transform.vert_slide", text="Vertex")
         col.operator("mesh.noise")
         col.operator("mesh.vertices_smooth")
-        col.operator("object.vertex_random")
+        col.operator("transform.vertex_random")
 
         col = layout.column(align=True)
         col.label(text="Add:")
@@ -327,6 +328,7 @@ class VIEW3D_PT_tools_meshedit(View3DPanel, Panel):
         col.operator("mesh.edge_face_add")
         col.operator("mesh.subdivide")
         col.operator("mesh.loopcut_slide")
+        col.operator("mesh.offset_edge_loops_slide")
         col.operator("mesh.duplicate_move", text="Duplicate")
         row = col.row(align=True)
         row.operator("mesh.spin")
@@ -366,7 +368,7 @@ class VIEW3D_PT_tools_meshweight(View3DPanel, Panel):
         col.operator("object.vertex_group_clean", text="Clean")
         col.operator("object.vertex_group_quantize", text="Quantize")
         col.operator("object.vertex_group_levels", text="Levels")
-        col.operator("object.vertex_group_blend", text="Blend")
+        col.operator("object.vertex_group_smooth", text="Smooth")
         col.operator("object.vertex_group_limit_total", text="Limit Total")
         col.operator("object.vertex_group_fix", text="Fix Deforms")
 
@@ -407,9 +409,9 @@ class VIEW3D_PT_tools_shading(View3DPanel, Panel):
         row.operator("mesh.mark_sharp", text="Sharp")
         col.label(text="Vertices:")
         row = col.row(align=True)
-        op = row.operator("mesh.mark_sharp", text="Smooth")
-        op.use_verts = True
-        op.clear = True
+        props = row.operator("mesh.mark_sharp", text="Smooth")
+        props.use_verts = True
+        props.clear = True
         row.operator("mesh.mark_sharp", text="Sharp").use_verts = True
 
         col = layout.column(align=True)
@@ -523,7 +525,7 @@ class VIEW3D_PT_tools_curveedit(View3DPanel, Panel):
         col.operator("curve.extrude_move", text="Extrude")
         col.operator("curve.subdivide")
         col.operator("curve.smooth")
-        col.operator("object.vertex_random")
+        col.operator("transform.vertex_random")
 
 
 class VIEW3D_PT_tools_add_curve_edit(View3DPanel, Panel):
@@ -573,11 +575,12 @@ class VIEW3D_PT_tools_surfaceedit(View3DPanel, Panel):
         col = layout.column(align=True)
         col.label(text="Modeling:")
         col.operator("curve.extrude", text="Extrude")
+        col.operator("curve.spin")
         col.operator("curve.subdivide")
 
         col = layout.column(align=True)
         col.label(text="Deform:")
-        col.operator("object.vertex_random")
+        col.operator("transform.vertex_random")
 
 
 class VIEW3D_PT_tools_add_surface_edit(View3DPanel, Panel):
@@ -654,7 +657,7 @@ class VIEW3D_PT_tools_armatureedit(View3DPanel, Panel):
 
         col = layout.column(align=True)
         col.label(text="Deform:")
-        col.operator("object.vertex_random")
+        col.operator("transform.vertex_random")
 
 
 class VIEW3D_PT_tools_armatureedit_options(View3DPanel, Panel):
@@ -687,7 +690,7 @@ class VIEW3D_PT_tools_mballedit(View3DPanel, Panel):
 
         col = layout.column(align=True)
         col.label(text="Deform:")
-        col.operator("object.vertex_random")
+        col.operator("transform.vertex_random")
 
 
 class VIEW3D_PT_tools_add_mball_edit(View3DPanel, Panel):
@@ -725,7 +728,7 @@ class VIEW3D_PT_tools_latticeedit(View3DPanel, Panel):
 
         col = layout.column(align=True)
         col.label(text="Deform:")
-        col.operator("object.vertex_random")
+        col.operator("transform.vertex_random")
 
 
 # ********** default tools for pose-mode ****************
@@ -1471,6 +1474,8 @@ class VIEW3D_PT_sculpt_dyntopo(Panel, View3DPaintPanel):
             row = sub.row(align=True)
             row.prop(sculpt, "constant_detail")
             row.operator("sculpt.sample_detail_size", text="", icon='EYEDROPPER')
+        elif (sculpt.detail_type_method == 'BRUSH'):
+            sub.prop(sculpt, "detail_percent")
         else:
             sub.prop(sculpt, "detail_size")
         sub.prop(sculpt, "detail_refine_method", text="")
@@ -1548,6 +1553,15 @@ class VIEW3D_PT_sculpt_symmetry(Panel, View3DPaintPanel):
         row.prop(sculpt, "lock_y", text="Y", toggle=True)
         row.prop(sculpt, "lock_z", text="Z", toggle=True)
 
+        layout.label(text="Tiling:")
+
+        row = layout.row(align=True)
+        row.prop(sculpt, "tile_x", text="X", toggle=True)
+        row.prop(sculpt, "tile_y", text="Y", toggle=True)
+        row.prop(sculpt, "tile_z", text="Z", toggle=True)
+
+        layout.column().prop(sculpt, "tile_offset", text="Tile Offset")
+
 
 class VIEW3D_PT_tools_brush_appearance(Panel, View3DPaintPanel):
     bl_category = "Options"
@@ -1605,9 +1619,9 @@ class VIEW3D_PT_tools_weightpaint(View3DPanel, Panel):
 
         col = layout.column()
         col.operator("paint.weight_gradient")
-        prop = col.operator("object.data_transfer", text="Transfer Weights")
-        prop.use_reverse_transfer = True
-        prop.data_type = 'VGROUP_WEIGHTS'
+        props = col.operator("object.data_transfer", text="Transfer Weights")
+        props.use_reverse_transfer = True
+        props.data_type = 'VGROUP_WEIGHTS'
 
 
 class VIEW3D_PT_tools_weightpaint_options(Panel, View3DPaintPanel):
@@ -1859,6 +1873,11 @@ class VIEW3D_PT_tools_grease_pencil_draw(GreasePencilDrawingToolsPanel, Panel):
 
 # Grease Pencil stroke editing tools
 class VIEW3D_PT_tools_grease_pencil_edit(GreasePencilStrokeEditPanel, Panel):
+    bl_space_type = 'VIEW_3D'
+
+
+# Grease Pencil stroke sculpting tools
+class VIEW3D_PT_tools_grease_pencil_sculpt(GreasePencilStrokeSculptPanel, Panel):
     bl_space_type = 'VIEW_3D'
 
 

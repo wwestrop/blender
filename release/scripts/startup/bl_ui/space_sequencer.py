@@ -177,8 +177,10 @@ class SEQUENCER_MT_view(Menu):
         layout.separator()
 
         if is_sequencer_view:
+            layout.operator_context = 'INVOKE_REGION_WIN'
             layout.operator("sequencer.view_all", text="View all Sequences")
             layout.operator("sequencer.view_selected")
+            layout.operator_context = 'INVOKE_DEFAULT'
         if is_preview:
             layout.operator_context = 'INVOKE_REGION_PREVIEW'
             layout.operator("sequencer.view_all_preview", text="Fit preview in window")
@@ -230,12 +232,12 @@ class SEQUENCER_MT_select(Menu):
 
         layout.operator("sequencer.select_active_side", text="Strips to the Left").side = 'LEFT'
         layout.operator("sequencer.select_active_side", text="Strips to the Right").side = 'RIGHT'
-        op = layout.operator("sequencer.select", text="All strips to the Left")
-        op.left_right = 'LEFT'
-        op.linked_time = True
-        op = layout.operator("sequencer.select", text="All strips to the Right")
-        op.left_right = 'RIGHT'
-        op.linked_time = True
+        props = layout.operator("sequencer.select", text="All strips to the Left")
+        props.left_right = 'LEFT'
+        props.linked_time = True
+        props = layout.operator("sequencer.select", text="All strips to the Right")
+        props.left_right = 'RIGHT'
+        props.linked_time = True
 
         layout.separator()
         layout.operator("sequencer.select_handles", text="Surrounding Handles").side = 'BOTH'
@@ -244,6 +246,8 @@ class SEQUENCER_MT_select(Menu):
         layout.separator()
         layout.operator_menu_enum("sequencer.select_grouped", "type", text="Grouped")
         layout.operator("sequencer.select_linked")
+        layout.operator("sequencer.select_less")
+        layout.operator("sequencer.select_more")
         layout.operator("sequencer.select_all").action = 'TOGGLE'
         layout.operator("sequencer.select_all", text="Inverse").action = 'INVERT'
 
@@ -263,12 +267,23 @@ class SEQUENCER_MT_change(Menu):
 
     def draw(self, context):
         layout = self.layout
+        strip = act_strip(context)
 
         layout.operator_context = 'INVOKE_REGION_WIN'
 
         layout.operator_menu_enum("sequencer.change_effect_input", "swap")
         layout.operator_menu_enum("sequencer.change_effect_type", "type")
-        layout.operator("sequencer.change_path", text="Path/Files")
+        prop = layout.operator("sequencer.change_path", text="Path/Files")
+
+        if strip:
+            stype = strip.type
+
+            if stype == 'IMAGE':
+                prop.filter_image = True;
+            elif stype == 'MOVIE':
+                prop.filter_movie = True;
+            elif stype == 'SOUND':
+                prop.filter_sound = True;
 
 
 class SEQUENCER_MT_frame(Menu):
@@ -333,6 +348,7 @@ class SEQUENCER_MT_add_effect(Menu):
         layout.operator("sequencer.effect_strip_add", text="Over Drop").type = 'OVER_DROP'
         layout.operator("sequencer.effect_strip_add", text="Wipe").type = 'WIPE'
         layout.operator("sequencer.effect_strip_add", text="Glow").type = 'GLOW'
+        layout.operator("sequencer.effect_strip_add", text="Text").type = 'TEXT'
         layout.operator("sequencer.effect_strip_add", text="Transform").type = 'TRANSFORM'
         layout.operator("sequencer.effect_strip_add", text="Color").type = 'COLOR'
         layout.operator("sequencer.effect_strip_add", text="Speed Control").type = 'SPEED'
@@ -537,7 +553,7 @@ class SEQUENCER_PT_effect(SequencerButtonsPanel, Panel):
         return strip.type in {'ADD', 'SUBTRACT', 'ALPHA_OVER', 'ALPHA_UNDER',
                               'CROSS', 'GAMMA_CROSS', 'MULTIPLY', 'OVER_DROP',
                               'WIPE', 'GLOW', 'TRANSFORM', 'COLOR', 'SPEED',
-                              'MULTICAM', 'GAUSSIAN_BLUR'}
+                              'MULTICAM', 'GAUSSIAN_BLUR', 'TEXT'}
 
     def draw(self, context):
         layout = self.layout
@@ -546,6 +562,7 @@ class SEQUENCER_PT_effect(SequencerButtonsPanel, Panel):
 
         if strip.input_count > 0:
             col = layout.column()
+            col.enabled = False
             col.prop(strip, "input_1")
             if strip.input_count > 1:
                 col.prop(strip, "input_2")
@@ -628,6 +645,17 @@ class SEQUENCER_PT_effect(SequencerButtonsPanel, Panel):
             for i in range(1, strip.channel):
                 row.operator("sequencer.cut_multicam", text="%d" % i).camera = i
 
+        elif strip.type == 'TEXT':
+            col = layout.column()
+            col.prop(strip, "text")
+            col.prop(strip, "font_size")
+            col.prop(strip, "use_shadow")
+            col.prop(strip, "align_x")
+            col.prop(strip, "align_y")
+            col.prop(strip, "location")
+            col.prop(strip, "wrap_width")
+            layout.operator("sequencer.export_subtitles")
+
         col = layout.column(align=True)
         if strip.type == 'SPEED':
             col.prop(strip, "multiply_speed")
@@ -638,7 +666,7 @@ class SEQUENCER_PT_effect(SequencerButtonsPanel, Panel):
         elif strip.type == 'GAUSSIAN_BLUR':
             col.prop(strip, "size_x")
             col.prop(strip, "size_y")
-
+ 
 
 class SEQUENCER_PT_input(SequencerButtonsPanel, Panel):
     bl_label = "Strip Input"
@@ -810,11 +838,13 @@ class SEQUENCER_PT_scene(SequencerButtonsPanel, Panel):
         layout.template_ID(strip, "scene")
 
         scene = strip.scene
+        layout.prop(strip, "use_sequence")
 
-        layout.label(text="Camera Override")
-        layout.template_ID(strip, "scene_camera")
+        if not strip.use_sequence:
+            layout.label(text="Camera Override")
+            layout.template_ID(strip, "scene_camera")
 
-        layout.prop(strip, "use_grease_pencil", text="Show Grease Pencil")
+            layout.prop(strip, "use_grease_pencil", text="Show Grease Pencil")
 
         if scene:
             layout.prop(scene, "audio_volume", text="Audio Volume")
@@ -949,11 +979,11 @@ class SEQUENCER_PT_proxy(SequencerButtonsPanel, Panel):
                 if proxy.use_proxy_custom_file:
                     flow.prop(proxy, "filepath")
 
-            row = layout.row()
-            row.prop(strip.proxy, "build_25")
-            row.prop(strip.proxy, "build_50")
-            row.prop(strip.proxy, "build_75")
-            row.prop(strip.proxy, "build_100")
+            row = layout.row(align=True)
+            row.prop(strip.proxy, "build_25", toggle=True)
+            row.prop(strip.proxy, "build_50", toggle=True)
+            row.prop(strip.proxy, "build_75", toggle=True)
+            row.prop(strip.proxy, "build_100", toggle=True)
 
             layout.prop(proxy, "use_overwrite")
 
@@ -1051,6 +1081,7 @@ class SEQUENCER_PT_modifiers(SequencerButtonsPanel, Panel):
         layout.prop(strip, "use_linear_modifiers")
 
         layout.operator_menu_enum("sequencer.strip_modifier_add", "type")
+        layout.operator("sequencer.strip_modifier_copy")
 
         for mod in strip.modifiers:
             box = layout.box()

@@ -63,7 +63,7 @@
 
 #include "interface_intern.h"
 
-static void ui_view2d_curRect_validate_resize(View2D *v2d, int resize, int mask_scrollers);
+static void ui_view2d_curRect_validate_resize(View2D *v2d, bool resize, bool mask_scrollers);
 
 /* *********************************************************************** */
 
@@ -116,7 +116,7 @@ static int view2d_scroll_mapped(int scroll)
 }
 
 /* called each time cur changes, to dynamically update masks */
-static void view2d_masks(View2D *v2d, int check_scrollers)
+static void view2d_masks(View2D *v2d, bool check_scrollers)
 {
 	int scroll;
 	
@@ -322,7 +322,7 @@ void UI_view2d_region_reinit(View2D *v2d, short type, int winx, int winy)
 
 			if (do_init) {
 				float panelzoom = (style) ? style->panelzoom : 1.0f;
-				float scrolw = v2d->scroll & V2D_SCROLL_RIGHT ? V2D_SCROLL_WIDTH : 0.0f;
+				float scrolw = (v2d->scroll & V2D_SCROLL_RIGHT) ? V2D_SCROLL_WIDTH : 0.0f;
 				
 				v2d->tot.xmin = 0.0f;
 				v2d->tot.xmax = winx - scrolw;
@@ -363,11 +363,12 @@ void UI_view2d_region_reinit(View2D *v2d, short type, int winx, int winy)
 	
 }
 
-/* Ensure View2D rects remain in a viable configuration 
- *	- cur is not allowed to be: larger than max, smaller than min, or outside of tot
+/**
+ * Ensure View2D rects remain in a viable configuration
+ * 'cur' is not allowed to be: larger than max, smaller than min, or outside of 'tot'
  */
 // XXX pre2.5 -> this used to be called  test_view2d()
-static void ui_view2d_curRect_validate_resize(View2D *v2d, int resize, int mask_scrollers)
+static void ui_view2d_curRect_validate_resize(View2D *v2d, bool resize, bool mask_scrollers)
 {
 	float totwidth, totheight, curwidth, curheight, width, height;
 	float winx, winy;
@@ -471,7 +472,7 @@ static void ui_view2d_curRect_validate_resize(View2D *v2d, int resize, int mask_
 	/* check if we should restore aspect ratio (if view size changed) */
 	if (v2d->keepzoom & V2D_KEEPASPECT) {
 		bool do_x = false, do_y = false, do_cur /* , do_win */ /* UNUSED */;
-		float /* curRatio, */ /* UNUSED */ winRatio;
+		float curRatio, winRatio;
 		
 		/* when a window edge changes, the aspect ratio can't be used to
 		 * find which is the best new 'cur' rect. thats why it stores 'old' 
@@ -479,7 +480,7 @@ static void ui_view2d_curRect_validate_resize(View2D *v2d, int resize, int mask_
 		if (winx != v2d->oldwinx) do_x = true;
 		if (winy != v2d->oldwiny) do_y = true;
 		
-		/* curRatio = height / width; */ /* UNUSED */
+		curRatio = height / width;
 		winRatio = winy / winx;
 		
 		/* both sizes change (area/region maximized)  */
@@ -489,7 +490,7 @@ static void ui_view2d_curRect_validate_resize(View2D *v2d, int resize, int mask_
 				if (fabsf(winx - v2d->oldwinx) > fabsf(winy - v2d->oldwiny)) do_y = false;
 				else do_x = false;
 			}
-			else if (winRatio > 1.0f) {
+			else if (winRatio > curRatio) {
 				do_x = false;
 			}
 			else {
@@ -844,7 +845,8 @@ void UI_view2d_sync(bScreen *screen, ScrArea *area, View2D *v2dcur, int flag)
 }
 
 
-/* Restore 'cur' rect to standard orientation (i.e. optimal maximum view of tot) 
+/**
+ * Restore 'cur' rect to standard orientation (i.e. optimal maximum view of tot)
  * This does not take into account if zooming the view on an axis will improve the view (if allowed)
  */
 void UI_view2d_curRect_reset(View2D *v2d)
@@ -897,7 +899,7 @@ void UI_view2d_curRect_reset(View2D *v2d)
 /* ------------------ */
 
 /* Change the size of the maximum viewable area (i.e. 'tot' rect) */
-void UI_view2d_totRect_set_resize(View2D *v2d, int width, int height, int resize)
+void UI_view2d_totRect_set_resize(View2D *v2d, int width, int height, bool resize)
 {
 //	int scroll = view2d_scroll_mapped(v2d->scroll);
 	
@@ -1100,8 +1102,10 @@ void UI_view2d_view_ortho(View2D *v2d)
 	glLoadIdentity();
 }
 
-/* Set view matrices to only use one axis of 'cur' only
- *	- xaxis     = if non-zero, only use cur x-axis, otherwise use cur-yaxis (mostly this will be used for x)
+/**
+ * Set view matrices to only use one axis of 'cur' only
+ *
+ * \param xaxis: if non-zero, only use cur x-axis, otherwise use cur-yaxis (mostly this will be used for x)
  */
 void UI_view2d_view_orthoSpecial(ARegion *ar, View2D *v2d, const bool xaxis)
 {
@@ -1659,7 +1663,7 @@ static void scroll_printstr(Scene *scene, float x, float y, float val, int power
 		BLI_timecode_string_from_time(timecode_str, sizeof(timecode_str), power, val, FPS, U.timecode_style);
 	}
 	else {
-		BLI_timecode_string_from_time_simple(timecode_str, sizeof(timecode_str), power, val);
+		BLI_timecode_string_from_time_seconds(timecode_str, sizeof(timecode_str), power, val);
 	}
 	
 	/* get length of string, and adjust printing location to fit it into the horizontal scrollbar */
@@ -1987,7 +1991,7 @@ void UI_view2d_listview_view_to_cell(
  *
  * \param columnwidth, rowheight: Size of each 'cell'
  * \param startx, starty: Coordinates that the list starts from, which should be (0,0) for most views
- * \param column, row_min, max: The starting and ending column/row indices
+ * \param column_min, column_max, row_min, row_max: The starting and ending column/row indices
  */
 void UI_view2d_listview_visible_cells(
         View2D *v2d, float columnwidth, float rowheight, float startx, float starty,
@@ -2021,7 +2025,7 @@ float UI_view2d_region_to_view_y(struct View2D *v2d, float y)
  * Convert from screen/region space to 2d-View space
  *
  * \param x, y: coordinates to convert
- * \param viewx, viewy: resultant coordinates
+ * \param r_view_x, r_view_y: resultant coordinates
  */
 void UI_view2d_region_to_view(View2D *v2d, float x, float y, float *r_view_x, float *r_view_y)
 {
@@ -2054,7 +2058,7 @@ float UI_view2d_view_to_region_y(View2D *v2d, float y)
  * \note Coordinates are clamped to lie within bounds of region
  *
  * \param x, y: Coordinates to convert.
- * \param regionx, regiony: Resultant coordinates.
+ * \param r_region_x, r_region_y: Resultant coordinates.
  */
 bool UI_view2d_view_to_region_clip(View2D *v2d, float x, float y, int *r_region_x, int *r_region_y)
 {
@@ -2083,7 +2087,7 @@ bool UI_view2d_view_to_region_clip(View2D *v2d, float x, float y, int *r_region_
  * \note Coordinates are NOT clamped to lie within bounds of region.
  *
  * \param x, y: Coordinates to convert.
- * \param regionx, regiony: Resultant coordinates.
+ * \param r_region_x, r_region_y: Resultant coordinates.
  */
 void UI_view2d_view_to_region(View2D *v2d, float x, float y, int *r_region_x, int *r_region_y)
 {

@@ -54,6 +54,7 @@ class RAS_ICanvas;
 class RAS_IPolyMaterial;
 class RAS_MeshSlot;
 class RAS_ILightObject;
+class SCA_IScene;
 
 typedef vector<unsigned short> KX_IndexArray;
 typedef vector<RAS_TexVert> KX_VertexArray;
@@ -266,7 +267,6 @@ public:
 	 * IndexPrimitives: Renders primitives from mesh slot.
 	 */
 	virtual void IndexPrimitives(class RAS_MeshSlot &ms) = 0;
-	virtual void IndexPrimitivesMulti(class RAS_MeshSlot &ms) = 0;
 
 	/**
 	 * IndexPrimitives_3DText will render text into the polygons.
@@ -384,10 +384,10 @@ public:
 	 */
 	virtual void	SetPolygonOffset(float mult, float add) = 0;
 	
-	virtual void DrawDebugLine(const MT_Vector3 &from, const MT_Vector3 &to, const MT_Vector3& color) = 0;
-	virtual void DrawDebugCircle(const MT_Vector3 &center, const MT_Scalar radius, const MT_Vector3 &color,
-	                             const MT_Vector3 &normal, int nsector) = 0;
-	virtual void FlushDebugShapes() = 0;
+	virtual void DrawDebugLine(SCA_IScene *scene, const MT_Vector3 &from, const MT_Vector3 &to, const MT_Vector3& color) = 0;
+	virtual void DrawDebugCircle(SCA_IScene *scene, const MT_Vector3 &center, const MT_Scalar radius,
+								 const MT_Vector3 &color, const MT_Vector3 &normal, int nsector) = 0;
+	virtual void FlushDebugShapes(SCA_IScene *scene) = 0;
 	
 	virtual void SetTexCoordNum(int num) = 0;
 	virtual void SetAttribNum(int num) = 0;
@@ -422,7 +422,7 @@ public:
 	/**
 	 * Render Tools
 	 */
-	virtual void applyTransform(double *oglmatrix, int drawingmode) = 0;
+	virtual void applyTransform(float *oglmatrix, int drawingmode) = 0;
 
 	/**
 	 * Renders 2D boxes.
@@ -446,7 +446,7 @@ public:
 	 */
 	virtual void RenderText3D(
 	        int fontid, const char *text, int size, int dpi,
-	        const float color[4], const double mat[16], float aspect) = 0;
+	        const float color[4], const float mat[16], float aspect) = 0;
 
 	/**
 	 * Renders 2D text string.
@@ -478,6 +478,11 @@ public:
 	virtual void SetClientObject(void *obj) = 0;
 
 	virtual void SetAuxilaryClientInfo(void *inf) = 0;
+
+	/**
+	 * Prints information about what the hardware supports.
+	 */
+	virtual void PrintHardwareInfo() = 0;
 
 #ifdef WITH_CXX_GUARDEDALLOC
 	MEM_CXX_CLASS_ALLOC_FUNCS("GE:RAS_IRasterizer")

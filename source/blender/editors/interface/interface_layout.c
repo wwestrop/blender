@@ -43,7 +43,7 @@
 #include "BLI_utildefines.h"
 #include "BLI_math.h"
 
-#include "BLF_translation.h"
+#include "BLT_translation.h"
 
 #include "BKE_context.h"
 #include "BKE_global.h"
@@ -678,7 +678,7 @@ static uiBut *ui_item_with_label(uiLayout *layout, uiBlock *block, const char *n
 		if (RNA_struct_is_a(ptr->type, &RNA_KeyMapItem)) {
 			char buf[128];
 
-			WM_keymap_item_to_string(ptr->data, buf, sizeof(buf));
+			WM_keymap_item_to_string(ptr->data, false, sizeof(buf), buf);
 
 			but = uiDefButR_prop(block, UI_BTYPE_HOTKEY_EVENT, 0, buf, x, y, w, h, ptr, prop, 0, 0, 0, -1, -1, NULL);
 			UI_but_func_set(but, ui_keymap_but_cb, but, NULL);
@@ -693,14 +693,17 @@ static uiBut *ui_item_with_label(uiLayout *layout, uiBlock *block, const char *n
 	return but;
 }
 
-void UI_context_active_but_prop_get_filebrowser(const bContext *C, PointerRNA *ptr, PropertyRNA **prop)
+void UI_context_active_but_prop_get_filebrowser(
+        const bContext *C,
+        PointerRNA *r_ptr, PropertyRNA **r_prop, bool *r_is_undo)
 {
 	ARegion *ar = CTX_wm_region(C);
 	uiBlock *block;
 	uiBut *but, *prevbut;
 
-	memset(ptr, 0, sizeof(*ptr));
-	*prop = NULL;
+	memset(r_ptr, 0, sizeof(*r_ptr));
+	*r_prop = NULL;
+	*r_is_undo = false;
 
 	if (!ar)
 		return;
@@ -712,8 +715,9 @@ void UI_context_active_but_prop_get_filebrowser(const bContext *C, PointerRNA *p
 			/* find the button before the active one */
 			if ((but->flag & UI_BUT_LAST_ACTIVE) && prevbut && prevbut->rnapoin.data) {
 				if (RNA_property_type(prevbut->rnaprop) == PROP_STRING) {
-					*ptr = prevbut->rnapoin;
-					*prop = prevbut->rnaprop;
+					*r_ptr = prevbut->rnapoin;
+					*r_prop = prevbut->rnaprop;
+					*r_is_undo = (prevbut->flag & UI_BUT_UNDO) != 0;
 					return;
 				}
 			}
@@ -929,7 +933,17 @@ void uiItemsFullEnumO(
 			target = uiLayoutColumn(split, layout->align);
 		}
 
-		if (radial) {
+		if (0 && radial) {
+			/* XXX Disabled as temporary workaround!
+			 *
+			 * Normally, we always draw a button for all items even if they're unavailable (we draw invisible
+			 * dummy buttons then), so items are always at the same position. This causes issues with current
+			 * 'Object Mode' pie since more than 8 modes exist now (see T46973).
+			 * Disabling this until more than 8 items per pie are supported (or a better solution is found).
+			 * We should work on that ASAP though.
+			 *
+			 * - Julian (Dec 2015)
+			 */
 			RNA_property_enum_items_gettexted_all(block->evil_C, &ptr, prop, &item_array, NULL, &free);
 		}
 		else {
@@ -979,6 +993,7 @@ void uiItemsFullEnumO(
 				}
 				else {
 					if (radial) {
+						/* invisible dummy button to ensure all items are always at the same position */
 						uiItemS(target);
 					}
 					else {
@@ -1287,7 +1302,10 @@ void uiItemFullR(uiLayout *layout, PointerRNA *ptr, PropertyRNA *prop, int index
 	}
 
 	/* menus and pie-menus don't show checkbox without this */
-	if (ELEM(layout->root->type, UI_LAYOUT_MENU, UI_LAYOUT_PIEMENU)) {
+	if ((layout->root->type == UI_LAYOUT_MENU) ||
+	    /* use checkboxes only as a fallback in pie-menu's, when no icon is defined */
+	    ((layout->root->type == UI_LAYOUT_PIEMENU) && (icon == ICON_NONE)))
+	{
 		if (type == PROP_BOOLEAN && ((is_array == false) || (index != RNA_NO_INDEX))) {
 			if (is_array) icon = (RNA_property_boolean_get_index(ptr, prop, index)) ? ICON_CHECKBOX_HLT : ICON_CHECKBOX_DEHLT;
 			else icon = (RNA_property_boolean_get(ptr, prop)) ? ICON_CHECKBOX_HLT : ICON_CHECKBOX_DEHLT;
@@ -1307,7 +1325,7 @@ void uiItemFullR(uiLayout *layout, PointerRNA *ptr, PropertyRNA *prop, int index
 	toggle = (flag & UI_ITEM_R_TOGGLE) != 0;
 	expand = (flag & UI_ITEM_R_EXPAND) != 0;
 	icon_only = (flag & UI_ITEM_R_ICON_ONLY) != 0;
-	no_bg = (flag & UI_ITEM_R_NO_BG);
+	no_bg = (flag & UI_ITEM_R_NO_BG) != 0;
 
 	/* get size */
 	ui_item_rna_size(layout, name, icon, ptr, prop, index, icon_only, &w, &h);
@@ -1380,11 +1398,23 @@ void uiItemR(uiLayout *layout, PointerRNA *ptr, const char *propname, int flag, 
 	uiItemFullR(layout, ptr, prop, RNA_NO_INDEX, 0, flag, name, icon);
 }
 
+void uiItemEnumR_prop(uiLayout *layout, const char *name, int icon, struct PointerRNA *ptr, PropertyRNA *prop, int value)
+{
+	if (RNA_property_type(prop) != PROP_ENUM) {
+		const char *propname = RNA_property_identifier(prop);
+		ui_item_disabled(layout, propname);
+		RNA_warning("property not an enum: %s.%s", RNA_struct_identifier(ptr->type), propname);
+		return;
+	}
+
+	uiItemFullR(layout, ptr, prop, RNA_ENUM_VALUE, value, 0, name, icon);
+}
+
 void uiItemEnumR(uiLayout *layout, const char *name, int icon, struct PointerRNA *ptr, const char *propname, int value)
 {
 	PropertyRNA *prop = RNA_struct_find_property(ptr, propname);
 
-	if (!prop || RNA_property_type(prop) != PROP_ENUM) {
+	if (prop == NULL) {
 		ui_item_disabled(layout, propname);
 		RNA_warning("property not found: %s.%s", RNA_struct_identifier(ptr->type), propname);
 		return;
@@ -1460,7 +1490,7 @@ void uiItemsEnumR(uiLayout *layout, struct PointerRNA *ptr, const char *propname
 
 		for (i = 0; i < totitem; i++) {
 			if (item[i].identifier[0]) {
-				uiItemEnumR(column, item[i].name, ICON_NONE, ptr, propname, item[i].value);
+				uiItemEnumR_prop(column, item[i].name, item[i].icon, ptr, prop, item[i].value);
 				ui_but_tip_from_enum_item(block->buttons.last, &item[i]);
 			}
 			else {
@@ -1962,7 +1992,7 @@ void uiItemMenuEnumO(uiLayout *layout, bContext *C, const char *opname, const ch
 	{
 		char keybuf[128];
 		if (WM_key_event_operator_string(C, ot->idname, layout->root->opcontext, NULL, false,
-		                                 keybuf, sizeof(keybuf)))
+		                                 sizeof(keybuf), keybuf))
 		{
 			ui_but_add_shortcut(but, keybuf, false);
 		}
@@ -2194,7 +2224,11 @@ static void ui_litem_layout_column(uiLayout *litem)
 static RadialDirection ui_get_radialbut_vec(float vec[2], short itemnum)
 {
 	RadialDirection dir;
-	BLI_assert(itemnum < 8);
+
+	if (itemnum >= 8) {
+		itemnum %= 8;
+		printf("Warning: Pie menus with more than 8 items are currently unsupported\n");
+	}
 
 	dir = ui_radial_dir_order[itemnum];
 	ui_but_pie_dir(dir, vec);
@@ -2775,7 +2809,8 @@ uiLayout *uiLayoutBox(uiLayout *layout)
 	return (uiLayout *)ui_layout_box(layout, UI_BTYPE_ROUNDBOX);
 }
 
-/* Check all buttons defined in this layout, and set any button flagged as UI_BUT_LIST_ITEM as active/selected.
+/**
+ * Check all buttons defined in this layout, and set any button flagged as UI_BUT_LIST_ITEM as active/selected.
  * Needed to handle correctly text colors of active (selected) list item.
  */
 void ui_layout_list_set_labels_active(uiLayout *layout)
@@ -3038,9 +3073,14 @@ static void ui_item_align(uiLayout *litem, short nr)
 	for (item = litem->items.last; item; item = item->prev) {
 		if (item->type == ITEM_BUTTON) {
 			bitem = (uiButtonItem *)item;
+#ifndef USE_UIBUT_SPATIAL_ALIGN
 			if (ui_but_can_align(bitem->but))
-				if (!bitem->but->alignnr)
+#endif
+			{
+				if (!bitem->but->alignnr) {
 					bitem->but->alignnr = nr;
+				}
+			}
 		}
 		else if (item->type == ITEM_LAYOUT_ABSOLUTE) {
 			/* pass */
@@ -3413,6 +3453,10 @@ void uiLayoutOperatorButs(
 
 		/* XXX, could give some nicer feedback or not show redo panel at all? */
 		uiItemL(layout, IFACE_("* Redo Unsupported *"), ICON_NONE);
+	}
+	else {
+		/* useful for macros where only one of the steps can't be re-done */
+		UI_block_lock_clear(uiLayoutGetBlock(layout));
 	}
 
 	/* menu */

@@ -92,6 +92,10 @@ enum {
 	WM_IME_COMPOSITE_EVENT      = 0x0015,
 /* IME event, GHOST_kEventImeCompositionEnd in ghost */
 	WM_IME_COMPOSITE_END   = 0x0016,
+	
+	/* Tablet/Pen Specific Events */
+	TABLET_STYLUS       = 0x001a,
+	TABLET_ERASER       = 0x001b,
 
 	/* *** Start of keyboard codes. *** */
 
@@ -303,6 +307,7 @@ enum {
 	TIMERAUTOSAVE         = 0x0115,  /* timer event, autosave */
 	TIMERREPORT           = 0x0116,  /* timer event, reports */
 	TIMERREGION           = 0x0117,  /* timer event, region slide in/out */
+	TIMERNOTIFIER         = 0x0118,  /* timer event, notifier sender */
 	TIMERF                = 0x011F,  /* last timer */
 
 	/* Tweak, gestures: 0x500x, 0x501x */

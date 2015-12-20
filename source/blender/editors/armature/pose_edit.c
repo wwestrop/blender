@@ -255,7 +255,7 @@ void POSE_OT_paths_calculate(wmOperatorType *ot)
 	RNA_def_int(ot->srna, "end_frame", 250, MINAFRAME, MAXFRAME, "End", 
 	            "Last frame to calculate bone paths on", MINFRAME, MAXFRAME / 2.0);
 	
-	RNA_def_enum(ot->srna, "bake_location", motionpath_bake_location_items, 0, 
+	RNA_def_enum(ot->srna, "bake_location", rna_enum_motionpath_bake_location_items, 0, 
 	             "Bake Location", 
 	             "Which point on the bones is used when calculating paths");
 }
@@ -436,7 +436,7 @@ static void pose_copy_menu(Scene *scene)
 						pchan->constflag |= pchanact->constflag;
 						
 						if (ob->pose)
-							ob->pose->flag |= POSE_RECALC;
+							BKE_pose_tag_recalc(bmain, ob->pose);
 					}
 					break;
 					case 6: /* Transform Locks */
@@ -550,7 +550,7 @@ static void pose_copy_menu(Scene *scene)
 		BKE_pose_update_constraint_flags(ob->pose); /* we could work out the flags but its simpler to do this */
 		
 		if (ob->pose)
-			ob->pose->flag |= POSE_RECALC;
+			BKE_pose_tag_recalc(bmain, ob->pose);
 	}
 	
 	DAG_id_tag_update(&ob->id, OB_RECALC_DATA); // and all its relations
@@ -700,7 +700,7 @@ void POSE_OT_rotation_mode_set(wmOperatorType *ot)
 	ot->flag = OPTYPE_REGISTER | OPTYPE_UNDO;
 	
 	/* properties */
-	ot->prop = RNA_def_enum(ot->srna, "type", posebone_rotmode_items, 0, "Rotation Mode", "");
+	ot->prop = RNA_def_enum(ot->srna, "type", rna_enum_posebone_rotmode_items, 0, "Rotation Mode", "");
 }
 
 /* ********************************************** */

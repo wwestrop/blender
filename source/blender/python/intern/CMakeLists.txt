@@ -25,12 +25,13 @@
 
 set(INC 
 	..
-	../../blenfont
 	../../blenkernel
 	../../blenlib
 	../../blenloader
+	../../blentranslation
 	../../editors/include
 	../../gpu
+	../../imbuf
 	../../makesdna
 	../../makesrna
 	../../windowmanager
@@ -45,6 +46,7 @@ set(INC_SYS
 
 set(SRC
 	gpu.c
+	gpu_offscreen.c
 	bpy.c
 	bpy_app.c
 	bpy_app_build_options.c
@@ -69,6 +71,7 @@ set(SRC
 	bpy_rna_callback.c
 	bpy_traceback.c
 	bpy_util.c
+	bpy_utils_previews.c
 	bpy_utils_units.c
 	stubs.c
 
@@ -94,6 +97,7 @@ set(SRC
 	bpy_rna_callback.h
 	bpy_traceback.h
 	bpy_util.h
+	bpy_utils_previews.h
 	bpy_utils_units.h
 	../BPY_extern.h
 )
@@ -222,7 +226,7 @@ if(WITH_SDL_DYNLOAD)
 	list(APPEND INC
 		../../../../extern/sdlew/include
 	)
-    add_definitions(-DWITH_SDL_DYNLOAD)
+	add_definitions(-DWITH_SDL_DYNLOAD)
 endif()
 
 if(WITH_JACK)

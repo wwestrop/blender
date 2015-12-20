@@ -371,6 +371,12 @@ class INFO_MT_file_previews(Menu):
         layout = self.layout
 
         layout.operator("wm.previews_ensure")
+        layout.operator("wm.previews_batch_generate")
+
+        layout.separator()
+
+        layout.operator("wm.previews_clear")
+        layout.operator("wm.previews_batch_clear")
 
 
 class INFO_MT_game(Menu):
@@ -424,8 +430,9 @@ class INFO_MT_opengl_render(Menu):
         layout = self.layout
 
         rd = context.scene.render
-
         layout.prop(rd, "use_antialiasing")
+        layout.prop(rd, "use_full_sample")
+
         layout.prop_menu_enum(rd, "antialiasing_samples")
         layout.prop_menu_enum(rd, "alpha_mode")
 

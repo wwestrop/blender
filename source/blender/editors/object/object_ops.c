@@ -186,7 +186,7 @@ void ED_operatortypes_object(void)
 	WM_operatortype_append(OBJECT_OT_vertex_group_fix);
 	WM_operatortype_append(OBJECT_OT_vertex_group_invert);
 	WM_operatortype_append(OBJECT_OT_vertex_group_levels);
-	WM_operatortype_append(OBJECT_OT_vertex_group_blend);
+	WM_operatortype_append(OBJECT_OT_vertex_group_smooth);
 	WM_operatortype_append(OBJECT_OT_vertex_group_clean);
 	WM_operatortype_append(OBJECT_OT_vertex_group_quantize);
 	WM_operatortype_append(OBJECT_OT_vertex_group_limit_total);
@@ -200,7 +200,7 @@ void ED_operatortypes_object(void)
 	WM_operatortype_append(OBJECT_OT_vertex_weight_normalize_active_vertex);
 	WM_operatortype_append(OBJECT_OT_vertex_weight_copy);
 
-	WM_operatortype_append(OBJECT_OT_vertex_warp);
+	WM_operatortype_append(TRANSFORM_OT_vertex_warp);
 
 	WM_operatortype_append(OBJECT_OT_game_property_new);
 	WM_operatortype_append(OBJECT_OT_game_property_remove);
@@ -249,7 +249,7 @@ void ED_operatortypes_object(void)
 	WM_operatortype_append(OBJECT_OT_lod_add);
 	WM_operatortype_append(OBJECT_OT_lod_remove);
 
-	WM_operatortype_append(OBJECT_OT_vertex_random);
+	WM_operatortype_append(TRANSFORM_OT_vertex_random);
 
 	WM_operatortype_append(OBJECT_OT_data_transfer);
 	WM_operatortype_append(OBJECT_OT_datalayout_transfer);
@@ -464,6 +464,7 @@ void ED_keymap_proportional_cycle(struct wmKeyConfig *UNUSED(keyconf), struct wm
 
 	kmi = WM_keymap_add_item(keymap, "WM_OT_context_cycle_enum", OKEY, KM_PRESS, KM_SHIFT, 0);
 	RNA_string_set(kmi->ptr, "data_path", "tool_settings.proportional_edit_falloff");
+	RNA_boolean_set(kmi->ptr, "wrap", true);
 }
 
 void ED_keymap_proportional_obmode(struct wmKeyConfig *UNUSED(keyconf), struct wmKeyMap *keymap)

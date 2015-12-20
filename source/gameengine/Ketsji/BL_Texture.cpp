@@ -38,7 +38,6 @@
 #include "BKE_image.h"
 #include "BLI_blenlib.h"
 
-#include "RAS_OpenGLRasterizer/RAS_GLExtensionManager.h"
 #include "RAS_ICanvas.h"
 #include "RAS_Rect.h"
 
@@ -170,7 +169,7 @@ bool BL_Texture::InitFromImage(int unit,  Image *img, bool mipmap)
 	glGenTextures(1, (GLuint*)&mTexture);
 
 #ifdef WITH_DDS
-	if (ibuf->ftype & DDS)
+	if (ibuf->ftype == IMB_FTYPE_DDS)
 		InitGLCompressedTex(ibuf, mipmap);
 	else
 		InitGLTex(ibuf->rect, ibuf->x, ibuf->y, mipmap);
@@ -196,7 +195,7 @@ bool BL_Texture::InitFromImage(int unit,  Image *img, bool mipmap)
 
 void BL_Texture::InitGLTex(unsigned int *pix,int x,int y,bool mipmap)
 {
-	if (!GPU_non_power_of_two_support() && (!is_power_of_2_i(x) || !is_power_of_2_i(y)) ) {
+	if (!GPU_full_non_power_of_two_support() && (!is_power_of_2_i(x) || !is_power_of_2_i(y)) ) {
 		InitNonPow2Tex(pix, x,y,mipmap);
 		return;
 	}
@@ -420,13 +419,16 @@ unsigned int BL_Texture::GetTextureType() const
 int BL_Texture::GetMaxUnits()
 {
 	if (g_max_units < 0) {
-		GLint unit;
-		if (GLEW_ARB_multitexture) {
-			glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &unit);
-			g_max_units = (MAXTEX>=unit)?unit:MAXTEX;
-		} else {
-			g_max_units = 0;
+		GLint unit = 0;
+
+		if (GPU_glsl_support()) {
+			glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS_ARB, &unit);
 		}
+		else if (GLEW_ARB_multitexture) {
+			glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &unit);
+		}
+
+		g_max_units = (MAXTEX >= unit) ? unit : MAXTEX;
 	}
 
 	return g_max_units;
@@ -683,7 +685,7 @@ void BL_Texture::setTexEnv(BL_Material *mat, bool modulate)
 					glTexEnvf(	GL_TEXTURE_ENV, op1,		blend_operand);
 			} break;
 	}
-	glTexEnvf(	GL_TEXTURE_ENV, GL_RGB_SCALE_ARB,	1.0);
+	glTexEnvf(	GL_TEXTURE_ENV, GL_RGB_SCALE_ARB,	1.0f);
 
 	glEndList();
 }

@@ -785,7 +785,7 @@ void minmax_v2v2_v2(float min[2], float max[2], const float vec[2])
 	if (max[1] < vec[1]) max[1] = vec[1];
 }
 
-void minmax_v3v3_v3_array(float r_min[3], float r_max[3], float (*vec_arr)[3], int nbr)
+void minmax_v3v3_v3_array(float r_min[3], float r_max[3], const float (*vec_arr)[3], int nbr)
 {
 	while (nbr--) {
 		minmax_v3v3_v3(r_min, r_max, *vec_arr++);
@@ -1095,3 +1095,38 @@ void copy_vn_fl(float *array_tar, const int size, const float val)
 		*(tar--) = val;
 	}
 }
+
+/** \name Double precision versions 'db'.
+ * \{ */
+
+void add_vn_vn_d(double *array_tar, const double *array_src, const int size)
+{
+	double *tar = array_tar + (size - 1);
+	const double *src = array_src + (size - 1);
+	int i = size;
+	while (i--) {
+		*(tar--) += *(src--);
+	}
+}
+
+void add_vn_vnvn_d(double *array_tar, const double *array_src_a, const double *array_src_b, const int size)
+{
+	double *tar = array_tar + (size - 1);
+	const double *src_a = array_src_a + (size - 1);
+	const double *src_b = array_src_b + (size - 1);
+	int i = size;
+	while (i--) {
+		*(tar--) = *(src_a--) + *(src_b--);
+	}
+}
+
+void mul_vn_db(double *array_tar, const int size, const double f)
+{
+	double *array_pt = array_tar + (size - 1);
+	int i = size;
+	while (i--) {
+		*(array_pt--) *= f;
+	}
+}
+
+/** \} */

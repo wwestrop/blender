@@ -176,7 +176,7 @@ ccl_device_inline void path_radiance_init(PathRadiance *L, int use_light_pass)
 #endif
 }
 
-ccl_device_inline void path_radiance_bsdf_bounce(PathRadiance *L, float3 *throughput,
+ccl_device_inline void path_radiance_bsdf_bounce(PathRadiance *L, ccl_addr_space float3 *throughput,
 	BsdfEval *bsdf_eval, float bsdf_pdf, int bounce, int bsdf_label)
 {
 	float inverse_pdf = 1.0f/bsdf_pdf;
@@ -339,14 +339,31 @@ ccl_device_inline void path_radiance_reset_indirect(PathRadiance *L)
 #endif
 }
 
+ccl_device_inline void path_radiance_copy_indirect(PathRadiance *L,
+                                                   const PathRadiance *L_src)
+{
+#ifdef __PASSES__
+	if(L->use_light_pass) {
+		L->path_diffuse = L_src->path_diffuse;
+		L->path_glossy = L_src->path_glossy;
+		L->path_transmission = L_src->path_transmission;
+		L->path_subsurface = L_src->path_subsurface;
+		L->path_scatter = L_src->path_scatter;
+
+		L->direct_emission = L_src->direct_emission;
+		L->indirect = L_src->indirect;
+	}
+#endif
+}
+
 ccl_device_inline float3 path_radiance_clamp_and_sum(KernelGlobals *kg, PathRadiance *L)
 {
-	float3 L_sum, L_direct, L_indirect;
-	float clamp_direct = kernel_data.integrator.sample_clamp_direct;
-	float clamp_indirect = kernel_data.integrator.sample_clamp_indirect;
-
+	float3 L_sum;
 	/* Light Passes are used */
 #ifdef __PASSES__
+	float3 L_direct, L_indirect;
+	float clamp_direct = kernel_data.integrator.sample_clamp_direct;
+	float clamp_indirect = kernel_data.integrator.sample_clamp_indirect;
 	if(L->use_light_pass) {
 		path_radiance_sum_indirect(L);
 

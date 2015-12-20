@@ -104,7 +104,7 @@ void ED_space_image_set_mask(bContext *C, SpaceImage *sima, Mask *mask)
 	}
 }
 
-ImBuf *ED_space_image_acquire_buffer(SpaceImage *sima, void **lock_r)
+ImBuf *ED_space_image_acquire_buffer(SpaceImage *sima, void **r_lock)
 {
 	ImBuf *ibuf;
 
@@ -114,7 +114,7 @@ ImBuf *ED_space_image_acquire_buffer(SpaceImage *sima, void **lock_r)
 			return BIF_render_spare_imbuf();
 		else
 #endif
-		ibuf = BKE_image_acquire_ibuf(sima->image, &sima->iuser, lock_r);
+		ibuf = BKE_image_acquire_ibuf(sima->image, &sima->iuser, r_lock);
 
 		if (ibuf) {
 			if (ibuf->rect || ibuf->rect_float)
@@ -124,7 +124,7 @@ ImBuf *ED_space_image_acquire_buffer(SpaceImage *sima, void **lock_r)
 		}
 	}
 	else
-		*lock_r = NULL;
+		*r_lock = NULL;
 
 	return NULL;
 }
@@ -289,6 +289,34 @@ void ED_image_point_pos__reverse(SpaceImage *sima, ARegion *ar, const float co[2
 
 	r_co[0] = (co[0] * width  * zoomx) + (float)sx;
 	r_co[1] = (co[1] * height * zoomy) + (float)sy;
+}
+
+/**
+ * This is more a user-level functionality, for going to next/prev used slot,
+ * Stepping onto the last unused slot too.
+ */
+bool ED_image_slot_cycle(struct Image *image, int direction)
+{
+	const int cur = image->render_slot;
+	int i, slot;
+
+	BLI_assert(ELEM(direction, -1, 1));
+
+	for (i = 1; i < IMA_MAX_RENDER_SLOT; i++) {
+		slot = (cur + ((direction == -1) ? -i : i)) % IMA_MAX_RENDER_SLOT;
+		if (slot < 0) slot += IMA_MAX_RENDER_SLOT;
+
+		if (image->renders[slot] || slot == image->last_render_slot) {
+			image->render_slot = slot;
+			break;
+		}
+	}
+
+	if (i == IMA_MAX_RENDER_SLOT) {
+		image->render_slot = ((cur == 1) ? 0 : 1);
+	}
+
+	return (cur != image->render_slot);
 }
 
 void ED_space_image_scopes_update(const struct bContext *C, struct SpaceImage *sima, struct ImBuf *ibuf, bool use_view_settings)

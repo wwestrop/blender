@@ -58,6 +58,8 @@
 #include "BIF_gl.h"
 #include "BIF_glutil.h"
 
+#include "GPU_basic_shader.h"
+
 #include "ED_anim_api.h"
 #include "ED_gpencil.h"
 #include "ED_markers.h"
@@ -177,7 +179,11 @@ void color3ubv_from_seq(Scene *curscene, Sequence *seq, unsigned char col[3])
 			blendcol[0] = blendcol[1] = blendcol[2] = 128;
 			if (seq->flag & SEQ_MUTE) UI_GetColorPtrBlendShade3ubv(col, blendcol, col, 0.5, 20);
 			break;
-		
+
+		case SEQ_TYPE_TEXT:
+			UI_GetThemeColor3ubv(TH_SEQ_TEXT, col);
+			break;
+
 		default:
 			col[0] = 10; col[1] = 255; col[2] = 40;
 			break;
@@ -198,7 +204,7 @@ static void drawseqwave(const bContext *C, SpaceSeq *sseq, Scene *scene, Sequenc
 		float yscale = (y2 - y1) / 2;
 		float samplestep;
 		float startsample, endsample;
-		float value;
+		float value1, value2;
 		bSound *sound = seq->sound;
 		
 		SoundWaveform *waveform;
@@ -224,7 +230,13 @@ static void drawseqwave(const bContext *C, SpaceSeq *sseq, Scene *scene, Sequenc
 		BLI_spin_unlock(sound->spinlock);
 		
 		waveform = seq->sound->waveform;
-		
+
+		if (waveform->length == 0) {
+			/* BKE_sound_read_waveform() set an empty SoundWaveform data in case it cannot generate a valid one...
+			 * See T45726. */
+			return;
+		}
+
 		startsample = floor((seq->startofs + seq->anim_startofs) / FPS * SOUND_WAVE_SAMPLES_PER_SECOND);
 		endsample = ceil((seq->startofs + seq->anim_startofs + seq->enddisp - seq->startdisp) / FPS * SOUND_WAVE_SAMPLES_PER_SECOND);
 		samplestep = (endsample - startsample) * stepsize / (x2 - x1);
@@ -232,35 +244,37 @@ static void drawseqwave(const bContext *C, SpaceSeq *sseq, Scene *scene, Sequenc
 		if (length > floor((waveform->length - startsample) / samplestep))
 			length = floor((waveform->length - startsample) / samplestep);
 
-		glBegin(GL_LINE_STRIP);
+		glColor4f(1.0f, 1.0f, 1.0f, 0.5);
+		glEnable(GL_BLEND);
+		glBegin(GL_TRIANGLE_STRIP);
 		for (i = 0; i < length; i++) {
-			pos = startsample + i * samplestep;
+			float sampleoffset = startsample + i * samplestep;
+			pos = sampleoffset;
 
-			value = waveform->data[pos * 3];
+			value1 = waveform->data[pos * 3];
+			value2 = waveform->data[pos * 3 + 1];
 
-			for (j = pos + 1; (j < waveform->length) && (j < pos + samplestep); j++) {
-				if (value > waveform->data[j * 3])
-					value = waveform->data[j * 3];
+			if (samplestep > 1.0f) {
+				for (j = pos + 1; (j < waveform->length) && (j < pos + samplestep); j++) {
+					if (value1 > waveform->data[j * 3])
+						value1 = waveform->data[j * 3];
+
+					if (value2 < waveform->data[j * 3 + 1])
+						value2 = waveform->data[j * 3 + 1];
+				}
+			}
+			else {
+				/* use simple linear interpolation */
+				float f = sampleoffset - pos;
+				value1 = (1.0f - f) * value1 + f * waveform->data[pos * 3 + 3];
+				value2 = (1.0f - f) * value2 + f * waveform->data[pos * 3 + 4];
 			}
 
-			glVertex2f(x1 + i * stepsize, ymid + value * yscale);
+			glVertex2f(x1 + i * stepsize, ymid + value1 * yscale);
+			glVertex2f(x1 + i * stepsize, ymid + value2 * yscale);
 		}
 		glEnd();
-
-		glBegin(GL_LINE_STRIP);
-		for (i = 0; i < length; i++) {
-			pos = startsample + i * samplestep;
-
-			value = waveform->data[pos * 3 + 1];
-
-			for (j = pos + 1; (j < waveform->length) && (j < pos + samplestep); j++) {
-				if (value < waveform->data[j * 3 + 1])
-					value = waveform->data[j * 3 + 1];
-			}
-
-			glVertex2f(x1 + i * stepsize, ymid + value * yscale);
-		}
-		glEnd();
+		glDisable(GL_BLEND);
 	}
 }
 
@@ -293,6 +307,20 @@ static void drawmeta_contents(Scene *scene, Sequence *seqm, float x1, float y1, 
 	int chan_range = 0;
 	float draw_range = y2 - y1;
 	float draw_height;
+	ListBase *seqbase;
+	int offset;
+
+	seqbase = BKE_sequence_seqbase_get(seqm, &offset);
+	if (!seqbase || BLI_listbase_is_empty(seqbase)) {
+		return;
+	}
+
+	if (seqm->type == SEQ_TYPE_SCENE) {
+		offset  = seqm->start - offset;
+	}
+	else {
+		offset = 0;
+	}
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -300,7 +328,7 @@ static void drawmeta_contents(Scene *scene, Sequence *seqm, float x1, float y1, 
 	if (seqm->flag & SEQ_MUTE)
 		drawmeta_stipple(1);
 
-	for (seq = seqm->seqbase.first; seq; seq = seq->next) {
+	for (seq = seqbase->first; seq; seq = seq->next) {
 		chan_min = min_ii(chan_min, seq->machine);
 		chan_max = max_ii(chan_max, seq->machine);
 	}
@@ -310,11 +338,14 @@ static void drawmeta_contents(Scene *scene, Sequence *seqm, float x1, float y1, 
 
 	col[3] = 196; /* alpha, used for all meta children */
 
-	for (seq = seqm->seqbase.first; seq; seq = seq->next) {
-		if ((seq->startdisp > x2 || seq->enddisp < x1) == 0) {
+	for (seq = seqbase->first; seq; seq = seq->next) {
+		const int startdisp = seq->startdisp + offset;
+		const int enddisp   = seq->enddisp   + offset;
+
+		if ((startdisp > x2 || enddisp < x1) == 0) {
 			float y_chan = (seq->machine - chan_min) / (float)(chan_range) * draw_range;
-			float x1_chan = seq->startdisp;
-			float x2_chan = seq->enddisp;
+			float x1_chan = startdisp;
+			float x2_chan = enddisp;
 			float y1_chan, y2_chan;
 
 			if ((seqm->flag & SEQ_MUTE) == 0 && (seq->flag & SEQ_MUTE))
@@ -395,7 +426,7 @@ static void draw_seq_handle(View2D *v2d, Sequence *seq, const float handsize_cla
 	}
 	
 	/* draw! */
-	if (seq->type < SEQ_TYPE_EFFECT || 
+	if (!(seq->type & SEQ_TYPE_EFFECT) ||
 	    BKE_sequence_effect_get_num_inputs(seq->type) == 0)
 	{
 		glEnable(GL_BLEND);
@@ -498,6 +529,11 @@ static void draw_seq_text(View2D *v2d, Sequence *seq, float x1, float x2, float 
 	else if (seq->type == SEQ_TYPE_IMAGE) {
 		str_len = BLI_snprintf(str, sizeof(str), "%s: %s%s | %d",
 		                       name, seq->strip->dir, seq->strip->stripdata->name, seq->len);
+	}
+	else if (seq->type == SEQ_TYPE_TEXT) {
+		TextVars *textdata = seq->effectdata;
+		str_len = BLI_snprintf(str, sizeof(str), "%s | %d",
+		                       textdata->text, seq->startdisp);
 	}
 	else if (seq->type & SEQ_TYPE_EFFECT) {
 		str_len = BLI_snprintf(str, sizeof(str), "%s | %d",
@@ -817,7 +853,9 @@ static void draw_seq_strip(const bContext *C, SpaceSeq *sseq, Scene *scene, AReg
 		glDisable(GL_LINE_STIPPLE);
 	}
 	
-	if (seq->type == SEQ_TYPE_META) {
+	if ((seq->type == SEQ_TYPE_META) ||
+	    ((seq->type == SEQ_TYPE_SCENE) && (seq->flag & SEQ_SCENE_STRIPS)))
+	{
 		drawmeta_contents(scene, seq, x1, y1, x2, y2);
 	}
 	
@@ -1061,7 +1099,6 @@ void draw_image_seq(const bContext *C, Scene *scene, ARegion *ar, SpaceSeq *sseq
 	float viewrect[2];
 	float col[3];
 	GLuint texid;
-	GLuint last_texid;
 	void *display_buffer;
 	void *cache_handle = NULL;
 	const bool is_imbuf = ED_space_sequencer_check_show_imbuf(sseq);
@@ -1108,7 +1145,7 @@ void draw_image_seq(const bContext *C, Scene *scene, ARegion *ar, SpaceSeq *sseq
 	if ((ibuf == NULL) ||
 	    (ibuf->rect == NULL && ibuf->rect_float == NULL))
 	{
-		/* gpencil can also be drawn if no imbuf is invalid */
+		/* gpencil can also be drawn without a valid imbuf */
 		if (draw_gpencil && is_imbuf) {
 			sequencer_display_size(scene, sseq, viewrect);
 
@@ -1257,11 +1294,9 @@ void draw_image_seq(const bContext *C, Scene *scene, ARegion *ar, SpaceSeq *sseq
 		}
 	}
 
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glColor4f(1.0, 1.0, 1.0, 1.0);
 
-	last_texid = glaGetOneInteger(GL_TEXTURE_2D);
-	glEnable(GL_TEXTURE_2D);
+	GPU_basic_shader_bind(GPU_SHADER_TEXTURE_2D | GPU_SHADER_USE_COLOR);
 	glGenTextures(1, (GLuint *)&texid);
 
 	glBindTexture(GL_TEXTURE_2D, texid);
@@ -1335,8 +1370,8 @@ void draw_image_seq(const bContext *C, Scene *scene, ARegion *ar, SpaceSeq *sseq
 	}
 	glEnd();
 
-	glBindTexture(GL_TEXTURE_2D, last_texid);
-	glDisable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	GPU_basic_shader_bind(GPU_SHADER_USE_COLOR);
 	if (sseq->mainb == SEQ_DRAW_IMG_IMBUF && sseq->flag & SEQ_USE_ALPHA)
 		glDisable(GL_BLEND);
 	glDeleteTextures(1, &texid);
@@ -1351,7 +1386,7 @@ void draw_image_seq(const bContext *C, Scene *scene, ARegion *ar, SpaceSeq *sseq
 		IMB_freeImBuf(ibuf);
 
 	if (draw_metadata) {
-		ED_region_image_metadata_draw(0.0, 0.0, ibuf, v2d->tot, 1.0, 1.0);
+		ED_region_image_metadata_draw(0.0, 0.0, ibuf, &v2d->tot, 1.0, 1.0);
 	}
 
 	if (draw_backdrop) {

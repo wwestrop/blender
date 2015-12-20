@@ -27,12 +27,18 @@
 #include "util_debug.h"
 #include "util_logging.h"
 #include "util_map.h"
+#include "util_md5.h"
 #include "util_opengl.h"
 #include "util_path.h"
 #include "util_string.h"
 #include "util_system.h"
 #include "util_types.h"
 #include "util_time.h"
+
+/* use feature-adaptive kernel compilation.
+ * Requires CUDA toolkit to be installed and currently only works on Linux.
+ */
+/* #define KERNEL_USE_ADAPTIVE */
 
 CCL_NAMESPACE_BEGIN
 
@@ -185,21 +191,21 @@ public:
 		cuda_assert(cuCtxDestroy(cuContext));
 	}
 
-	bool support_device(bool /*experimental*/)
+	bool support_device(const DeviceRequestedFeatures& /*requested_features*/)
 	{
 		int major, minor;
 		cuDeviceComputeCapability(&major, &minor, cuDevId);
-		
+
 		/* We only support sm_20 and above */
 		if(major < 2) {
 			cuda_error_message(string_printf("CUDA device supported only with compute capability 2.0 or up, found %d.%d.", major, minor));
 			return false;
 		}
-		
+
 		return true;
 	}
 
-	string compile_kernel(bool experimental)
+	string compile_kernel(const DeviceRequestedFeatures& requested_features)
 	{
 		/* compute cubin name */
 		int major, minor;
@@ -207,7 +213,7 @@ public:
 		string cubin;
 
 		/* attempt to use kernel provided with blender */
-		if(experimental)
+		if(requested_features.experimental)
 			cubin = path_get(string_printf("lib/kernel_experimental_sm_%d%d.cubin", major, minor));
 		else
 			cubin = path_get(string_printf("lib/kernel_sm_%d%d.cubin", major, minor));
@@ -221,10 +227,20 @@ public:
 		string kernel_path = path_get("kernel");
 		string md5 = path_files_md5_hash(kernel_path);
 
-		if(experimental)
+#ifdef KERNEL_USE_ADAPTIVE
+		string feature_build_options = requested_features.get_build_options();
+		string device_md5 = util_md5_string(feature_build_options);
+		cubin = string_printf("cycles_kernel_%s_sm%d%d_%s.cubin",
+		                      device_md5.c_str(),
+		                      major, minor,
+		                      md5.c_str());
+#else
+		if(requested_features.experimental)
 			cubin = string_printf("cycles_kernel_experimental_sm%d%d_%s.cubin", major, minor, md5.c_str());
 		else
 			cubin = string_printf("cycles_kernel_sm%d%d_%s.cubin", major, minor, md5.c_str());
+#endif
+
 		cubin = path_user_get(path_join("cache", cubin));
 		VLOG(1) << "Testing for locally compiled kernel " << cubin;
 		/* if exists already, use it */
@@ -266,7 +282,7 @@ public:
 			printf("CUDA version %d.%d detected, build may succeed but only CUDA 6.5 is officially supported.\n", cuda_version/10, cuda_version%10);
 
 		/* compile */
-		string kernel = path_join(kernel_path, "kernel.cu");
+		string kernel = path_join(kernel_path, path_join("kernels", path_join("cuda", "kernel.cu")));
 		string include = kernel_path;
 		const int machine = system_cpu_bits();
 
@@ -279,12 +295,18 @@ public:
 			"-o \"%s\" --ptxas-options=\"-v\" --use_fast_math -I\"%s\" "
 			"-DNVCC -D__KERNEL_CUDA_VERSION__=%d",
 			nvcc, major, minor, machine, kernel.c_str(), cubin.c_str(), include.c_str(), cuda_version);
-		
-		if(experimental)
-			command += " -D__KERNEL_CUDA_EXPERIMENTAL__";
 
-		if(getenv("CYCLES_CUDA_EXTRA_CFLAGS")) {
-			command += string(" ") + getenv("CYCLES_CUDA_EXTRA_CFLAGS");
+#ifdef KERNEL_USE_ADAPTIVE
+		command += " " + feature_build_options;
+#else
+		if(requested_features.experimental) {
+			command += " -D__KERNEL_EXPERIMENTAL__";
+		}
+#endif
+
+		const char* extra_cflags = getenv("CYCLES_CUDA_EXTRA_CFLAGS");
+		if(extra_cflags) {
+			command += string(" ") + string(extra_cflags);
 		}
 
 #ifdef WITH_CYCLES_DEBUG
@@ -309,18 +331,18 @@ public:
 		return cubin;
 	}
 
-	bool load_kernels(bool experimental)
+	bool load_kernels(const DeviceRequestedFeatures& requested_features)
 	{
 		/* check if cuda init succeeded */
 		if(cuContext == 0)
 			return false;
-		
+
 		/* check if GPU is supported */
-		if(!support_device(experimental))
+		if(!support_device(requested_features))
 			return false;
 
 		/* get kernel */
-		string cubin = compile_kernel(experimental);
+		string cubin = compile_kernel(requested_features);
 
 		if(cubin == "")
 			return false;
@@ -416,7 +438,10 @@ public:
 		cuda_pop_context();
 	}
 
-	void tex_alloc(const char *name, device_memory& mem, InterpolationType interpolation, bool periodic)
+	void tex_alloc(const char *name,
+	               device_memory& mem,
+	               InterpolationType interpolation,
+	               ExtensionType extension)
 	{
 		/* todo: support 3D textures, only CPU for now */
 		VLOG(1) << "Texture allocate: " << name << ", " << mem.memory_size() << " bytes.";
@@ -510,13 +535,19 @@ public:
 				cuda_assert(cuTexRefSetFlags(texref, CU_TRSF_READ_AS_INTEGER));
 			}
 
-			if(periodic) {
-				cuda_assert(cuTexRefSetAddressMode(texref, 0, CU_TR_ADDRESS_MODE_WRAP));
-				cuda_assert(cuTexRefSetAddressMode(texref, 1, CU_TR_ADDRESS_MODE_WRAP));
-			}
-			else {
-				cuda_assert(cuTexRefSetAddressMode(texref, 0, CU_TR_ADDRESS_MODE_CLAMP));
-				cuda_assert(cuTexRefSetAddressMode(texref, 1, CU_TR_ADDRESS_MODE_CLAMP));
+			switch(extension) {
+				case EXTENSION_REPEAT:
+					cuda_assert(cuTexRefSetAddressMode(texref, 0, CU_TR_ADDRESS_MODE_WRAP));
+					cuda_assert(cuTexRefSetAddressMode(texref, 1, CU_TR_ADDRESS_MODE_WRAP));
+					break;
+				case EXTENSION_EXTEND:
+					cuda_assert(cuTexRefSetAddressMode(texref, 0, CU_TR_ADDRESS_MODE_CLAMP));
+					cuda_assert(cuTexRefSetAddressMode(texref, 1, CU_TR_ADDRESS_MODE_CLAMP));
+					break;
+				case EXTENSION_CLIP:
+					cuda_assert(cuTexRefSetAddressMode(texref, 0, CU_TR_ADDRESS_MODE_BORDER));
+					cuda_assert(cuTexRefSetAddressMode(texref, 1, CU_TR_ADDRESS_MODE_BORDER));
+					break;
 			}
 			cuda_assert(cuTexRefSetFormat(texref, format, mem.data_elements));
 
@@ -799,7 +830,7 @@ public:
 			if(mem.data_type == TYPE_HALF)
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, pmem.w, pmem.h, 0, GL_RGBA, GL_HALF_FLOAT, NULL);
 			else
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, pmem.w, pmem.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, pmem.w, pmem.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -880,11 +911,12 @@ public:
 		}
 	}
 
-	void draw_pixels(device_memory& mem, int y, int w, int h, int dy, int width, int height, bool transparent,
+	void draw_pixels(device_memory& mem, int y, int w, int h, int dx, int dy, int width, int height, bool transparent,
 		const DeviceDrawParams &draw_params)
 	{
 		if(!background) {
 			PixelMem pmem = pixel_mem_map[mem.device_pointer];
+			float *vpointer;
 
 			cuda_push_context();
 
@@ -897,13 +929,13 @@ public:
 			else
 				offset *= sizeof(uint8_t);
 
-			glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, pmem.cuPBO);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pmem.cuPBO);
 			glBindTexture(GL_TEXTURE_2D, pmem.cuTexId);
 			if(mem.data_type == TYPE_HALF)
 				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_HALF_FLOAT, (void*)offset);
 			else
 				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, (void*)offset);
-			glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 			
 			glEnable(GL_TEXTURE_2D);
 			
@@ -918,23 +950,52 @@ public:
 				draw_params.bind_display_space_shader_cb();
 			}
 
-			glPushMatrix();
-			glTranslatef(0.0f, (float)dy, 0.0f);
-				
-			glBegin(GL_QUADS);
-			
-			glTexCoord2f(0.0f, 0.0f);
-			glVertex2f(0.0f, 0.0f);
-			glTexCoord2f((float)w/(float)pmem.w, 0.0f);
-			glVertex2f((float)width, 0.0f);
-			glTexCoord2f((float)w/(float)pmem.w, (float)h/(float)pmem.h);
-			glVertex2f((float)width, (float)height);
-			glTexCoord2f(0.0f, (float)h/(float)pmem.h);
-			glVertex2f(0.0f, (float)height);
+			if(!vertex_buffer)
+				glGenBuffers(1, &vertex_buffer);
 
-			glEnd();
+			glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+			/* invalidate old contents - avoids stalling if buffer is still waiting in queue to be rendered */
+			glBufferData(GL_ARRAY_BUFFER, 16 * sizeof(float), NULL, GL_STREAM_DRAW);
 
-			glPopMatrix();
+			vpointer = (float *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+
+			if(vpointer) {
+				/* texture coordinate - vertex pair */
+				vpointer[0] = 0.0f;
+				vpointer[1] = 0.0f;
+				vpointer[2] = dx;
+				vpointer[3] = dy;
+
+				vpointer[4] = (float)w/(float)pmem.w;
+				vpointer[5] = 0.0f;
+				vpointer[6] = (float)width + dx;
+				vpointer[7] = dy;
+
+				vpointer[8] = (float)w/(float)pmem.w;
+				vpointer[9] = (float)h/(float)pmem.h;
+				vpointer[10] = (float)width + dx;
+				vpointer[11] = (float)height + dy;
+
+				vpointer[12] = 0.0f;
+				vpointer[13] = (float)h/(float)pmem.h;
+				vpointer[14] = dx;
+				vpointer[15] = (float)height + dy;
+
+				glUnmapBuffer(GL_ARRAY_BUFFER);
+			}
+
+			glTexCoordPointer(2, GL_FLOAT, 4 * sizeof(float), 0);
+			glVertexPointer(2, GL_FLOAT, 4 * sizeof(float), (char *)NULL + 2 * sizeof(float));
+
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+			glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			glDisableClientState(GL_VERTEX_ARRAY);
+
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 			if(draw_params.unbind_display_space_shader_cb) {
 				draw_params.unbind_display_space_shader_cb();
@@ -951,7 +1012,7 @@ public:
 			return;
 		}
 
-		Device::draw_pixels(mem, y, w, h, dy, width, height, transparent, draw_params);
+		Device::draw_pixels(mem, y, w, h, dx, dy, width, height, transparent, draw_params);
 	}
 
 	void thread_run(DeviceTask *task)
@@ -1092,13 +1153,19 @@ void device_cuda_info(vector<DeviceInfo>& devices)
 	}
 	
 	vector<DeviceInfo> display_devices;
-	
+
 	for(int num = 0; num < count; num++) {
 		char name[256];
 		int attr;
-		
+
 		if(cuDeviceGetName(name, 256, num) != CUDA_SUCCESS)
 			continue;
+
+		int major, minor;
+		cuDeviceComputeCapability(&major, &minor, num);
+		if(major < 2) {
+			continue;
+		}
 
 		DeviceInfo info;
 
@@ -1107,8 +1174,6 @@ void device_cuda_info(vector<DeviceInfo>& devices)
 		info.id = string_printf("CUDA_%d", num);
 		info.num = num;
 
-		int major, minor;
-		cuDeviceComputeCapability(&major, &minor, num);
 		info.advanced_shading = (major >= 2);
 		info.extended_images = (major >= 3);
 		info.pack_images = false;
@@ -1133,7 +1198,7 @@ string device_cuda_capabilities(void)
 		if(result != CUDA_ERROR_NO_DEVICE) {
 			return string("Error initializing CUDA: ") + cuewErrorString(result);
 		}
-		return "No CUDA device found";
+		return "No CUDA device found\n";
 	}
 
 	int count;

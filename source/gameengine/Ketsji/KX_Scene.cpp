@@ -35,6 +35,8 @@
 #  pragma warning (disable:4786)
 #endif
 
+#include <stdio.h>
+
 #include "KX_Scene.h"
 #include "KX_PythonInit.h"
 #include "MT_assert.h"
@@ -42,8 +44,7 @@
 #include "KX_BlenderMaterial.h"
 #include "KX_FontObject.h"
 #include "RAS_IPolygonMaterial.h"
-#include "ListValue.h"
-#include "KX_PythonCallBack.h"
+#include "EXP_ListValue.h"
 #include "SCA_LogicManager.h"
 #include "SCA_TimeEventManager.h"
 //#include "SCA_AlwaysEventManager.h"
@@ -67,7 +68,7 @@
 #include "RAS_ICanvas.h"
 #include "RAS_BucketManager.h"
 
-#include "FloatValue.h"
+#include "EXP_FloatValue.h"
 #include "SCA_IController.h"
 #include "SCA_IActuator.h"
 #include "SG_Node.h"
@@ -95,12 +96,14 @@
 #include "KX_ObstacleSimulation.h"
 
 #ifdef WITH_BULLET
-#include "KX_SoftBodyDeformer.h"
+#  include "KX_SoftBodyDeformer.h"
+#endif
+
+#ifdef WITH_PYTHON
+#  include "EXP_PythonCallBack.h"
 #endif
 
 #include "KX_Light.h"
-
-#include <stdio.h>
 
 #include "BLI_task.h"
 
@@ -581,6 +584,10 @@ KX_GameObject* KX_Scene::AddNodeReplicaObject(class SG_IObject* node, class CVal
 		newctrl->SetNewClientInfo(newobj->getClientInfo());
 		newobj->SetPhysicsController(newctrl, newobj->IsDynamic());
 		newctrl->PostProcessReplica(motionstate, parentctrl);
+
+		// Child objects must be static
+		if (parent)
+			newctrl->SuspendDynamics();
 	}
 
 	return newobj;
@@ -809,13 +816,6 @@ void KX_Scene::DupliGroupRecurse(CValue* obj, int level)
 		// we can now add the graphic controller to the physic engine
 		replica->ActivateGraphicController(true);
 
-		// set references for dupli-group
-		// groupobj holds a list of all objects, that belongs to this group
-		groupobj->AddInstanceObjects(replica);
-
-		// every object gets the reference to its dupli-group object
-		replica->SetDupliGroupObject(groupobj);
-
 		// done with replica
 		replica->Release();
 	}
@@ -855,6 +855,15 @@ void KX_Scene::DupliGroupRecurse(CValue* obj, int level)
 		if ((*git) != groupobj && (*git)->IsDupliGroup())
 			// can't instantiate group immediately as it destroys m_logicHierarchicalGameObjects
 			duplilist.push_back((*git));
+
+		if ((*git)->GetBlenderGroupObject() == blgroupobj) {
+			// set references for dupli-group
+			// groupobj holds a list of all objects, that belongs to this group
+			groupobj->AddInstanceObjects((*git));
+
+			// every object gets the reference to its dupli-group object
+			(*git)->SetDupliGroupObject(groupobj);
+		}
 	}
 
 	for (git = duplilist.begin(); !(git == duplilist.end()); ++git)
@@ -889,7 +898,7 @@ SCA_IObject* KX_Scene::AddReplicaObject(class CValue* originalobject,
 		m_tempObjectList->Add(replica->AddRef());
 		// this convert the life from frames to sort-of seconds, hard coded 0.02 that assumes we have 50 frames per second
 		// if you change this value, make sure you change it in KX_GameObject::pyattr_get_life property too
-		CValue *fval = new CFloatValue(lifespan*0.02);
+		CValue *fval = new CFloatValue(lifespan*0.02f);
 		replica->SetProperty("::timebomb",fval);
 		fval->Release();
 	}
@@ -997,16 +1006,27 @@ void KX_Scene::RemoveObject(class CValue* gameobj)
 	//newobj->SetSGNode(0);
 }
 
+void KX_Scene::RemoveDupliGroup(class CValue *gameobj)
+{
+	KX_GameObject *newobj = (KX_GameObject *) gameobj;
+
+	if (newobj->IsDupliGroup()) {
+		for (int i = 0; i < newobj->GetInstanceObjects()->GetCount(); i++) {
+			CValue *obj = newobj->GetInstanceObjects()->GetValue(i);
+			DelayedRemoveObject(obj);
+		}
+	}
+}
+
 void KX_Scene::DelayedRemoveObject(class CValue* gameobj)
 {
-	//KX_GameObject* newobj = (KX_GameObject*) gameobj;
+	RemoveDupliGroup(gameobj);
+
 	if (!m_euthanasyobjects->SearchValue(gameobj))
 	{
 		m_euthanasyobjects->Add(gameobj->AddRef());
-	} 
+	}
 }
-
-
 
 int KX_Scene::NewRemoveObject(class CValue* gameobj)
 {
@@ -1084,6 +1104,16 @@ int KX_Scene::NewRemoveObject(class CValue* gameobj)
 		group->RemoveInstanceObject(newobj);
 	
 	newobj->RemoveMeshes();
+
+	switch (newobj->GetGameObjectType()) {
+		case SCA_IObject::OBJ_CAMERA:
+			m_cameras.remove((KX_Camera *)newobj);
+			break;
+		case SCA_IObject::OBJ_TEXT:
+			m_fonts.remove((KX_FontObject *)newobj);
+			break;
+	}
+
 	ret = 1;
 	if (newobj->GetGameObjectType()==SCA_IObject::OBJ_LIGHT && m_lightlist->RemoveValue(newobj))
 		ret = newobj->Release();
@@ -1099,19 +1129,16 @@ int KX_Scene::NewRemoveObject(class CValue* gameobj)
 		ret = newobj->Release();
 	if (m_animatedlist->RemoveValue(newobj))
 		ret = newobj->Release();
-		
+
+	/* Warning 'newobj' maye be freed now, only compare, don't access */
+
+
 	if (newobj == m_active_camera)
 	{
 		//no AddRef done on m_active_camera so no Release
 		//m_active_camera->Release();
 		m_active_camera = NULL;
 	}
-
-	// in case this is a camera
-	m_cameras.remove((KX_Camera*)newobj);
-
-	// in case this is a font
-	m_fonts.remove((KX_FontObject*)newobj);
 
 	/* currently does nothing, keep in case we need to Unregister something */
 #if 0
@@ -1530,9 +1557,9 @@ void KX_Scene::CalculateVisibleMeshes(RAS_IRasterizer* rasty,KX_Camera* cam, int
 		planes[5].setValue(cplanes[3].getValue());	// bottom
 		CullingInfo info(layer);
 
-		double mvmat[16] = {0};
+		float mvmat[16] = {0};
 		cam->GetModelviewMatrix().getValue(mvmat);
-		double pmat[16] = {0};
+		float pmat[16] = {0};
 		cam->GetProjectionMatrix().getValue(pmat);
 
 		dbvt_culling = m_physicsEnvironment->CullingTest(PhysicsCullingCallback,&info,planes,5,m_dbvt_occlusion_res,
@@ -1561,7 +1588,7 @@ void KX_Scene::LogicBeginFrame(double curtime)
 		
 		if (propval)
 		{
-			float timeleft = propval->GetNumber() - 1.0/KX_KetsjiEngine::GetTicRate();
+			float timeleft = (float)(propval->GetNumber() - 1.0/KX_KetsjiEngine::GetTicRate());
 			
 			if (timeleft > 0)
 			{
@@ -1662,10 +1689,6 @@ void KX_Scene::UpdateAnimations(double curtime)
 
 	BLI_task_pool_work_and_wait(pool);
 	BLI_task_pool_free(pool);
-
-	for (int i=0; i<m_animatedlist->GetCount(); ++i) {
-		((KX_GameObject*)m_animatedlist->GetValue(i))->UpdateActionIPOs();
-	}
 }
 
 void KX_Scene::LogicUpdateFrame(double curtime, bool frame)
@@ -1753,6 +1776,10 @@ void KX_Scene::RenderFonts()
 void KX_Scene::UpdateObjectLods(void)
 {
 	KX_GameObject* gameobj;
+
+	if (!this->m_active_camera)
+		return;
+
 	MT_Vector3 cam_pos = this->m_active_camera->NodeGetWorldPosition();
 
 	for (int i = 0; i < this->GetObjectList()->GetCount(); i++) {
@@ -1800,9 +1827,9 @@ void KX_Scene::UpdateObjectActivity(void)
 				 * Manhattan distance. */
 				MT_Point3 obpos = ob->NodeGetWorldPosition();
 				
-				if ((fabs(camloc[0] - obpos[0]) > m_activity_box_radius) ||
-				    (fabs(camloc[1] - obpos[1]) > m_activity_box_radius) ||
-				    (fabs(camloc[2] - obpos[2]) > m_activity_box_radius) )
+				if ((fabsf(camloc[0] - obpos[0]) > m_activity_box_radius) ||
+				    (fabsf(camloc[1] - obpos[1]) > m_activity_box_radius) ||
+				    (fabsf(camloc[2] - obpos[2]) > m_activity_box_radius) )
 				{
 					ob->Suspend();
 				}
@@ -1816,8 +1843,8 @@ void KX_Scene::UpdateObjectActivity(void)
 
 void KX_Scene::SetActivityCullingRadius(float f)
 {
-	if (f < 0.5)
-		f = 0.5;
+	if (f < 0.5f)
+		f = 0.5f;
 	m_activity_box_radius = f;
 }
 	
@@ -1899,15 +1926,6 @@ static void MergeScene_LogicBrick(SCA_ILogicBrick* brick, KX_Scene *from, KX_Sce
 	brick->Replace_IScene(to);
 	brick->Replace_NetworkScene(to->GetNetworkScene());
 
-	/* near sensors have physics controllers */
-	KX_TouchSensor *touch_sensor = dynamic_cast<class KX_TouchSensor *>(brick);
-	if (touch_sensor) {
-		KX_TouchEventManager *tmgr = (KX_TouchEventManager*)from->GetLogicManager()->FindEventManager(SCA_EventManager::TOUCH_EVENTMGR);
-		touch_sensor->UnregisterSumo(tmgr);
-		touch_sensor->GetPhysicsController()->SetPhysicsEnvironment(to->GetPhysicsEnvironment());
-		touch_sensor->RegisterSumo(tmgr);
-	}
-
 	// If we end up replacing a KX_TouchEventManager, we need to make sure
 	// physics controllers are properly in place. In other words, do this
 	// after merging physics controllers!
@@ -1966,17 +1984,6 @@ static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene
 		{
 			SCA_IController *cont= *itc;
 			MergeScene_LogicBrick(cont, from, to);
-
-			vector<SCA_ISensor*> linkedsensors = cont->GetLinkedSensors();
-			vector<SCA_IActuator*> linkedactuators = cont->GetLinkedActuators();
-
-			for (vector<SCA_IActuator*>::iterator ita = linkedactuators.begin();!(ita==linkedactuators.end());++ita) {
-				MergeScene_LogicBrick(*ita, from, to);
-			}
-
-			for (vector<SCA_ISensor*>::iterator its = linkedsensors.begin();!(its==linkedsensors.end());++its) {
-				MergeScene_LogicBrick(*its, from, to);
-			}
 		}
 	}
 
@@ -2011,12 +2018,20 @@ static void MergeScene_GameObject(KX_GameObject* gameobj, KX_Scene *to, KX_Scene
 	if (gameobj->GetGameObjectType() == SCA_IObject::OBJ_CAMERA)
 		to->AddCamera((KX_Camera*)gameobj);
 
+	// All armatures should be in the animated object list to be umpdated.
+	if (gameobj->GetGameObjectType() == SCA_IObject::OBJ_ARMATURE)
+		to->AddAnimatedObject(gameobj);
+
 	/* Add the object to the scene's logic manager */
 	to->GetLogicManager()->RegisterGameObjectName(gameobj->GetName(), gameobj);
 	to->GetLogicManager()->RegisterGameObj(gameobj->GetBlenderObject(), gameobj);
 
-	for (int i=0; i<gameobj->GetMeshCount(); ++i)
-		to->GetLogicManager()->RegisterGameMeshName(gameobj->GetMesh(i)->GetName(), gameobj->GetBlenderObject());
+	for (int i = 0; i < gameobj->GetMeshCount(); ++i) {
+		RAS_MeshObject *meshobj = gameobj->GetMesh(i);
+		// Register the mesh object by name and blender object.
+		to->GetLogicManager()->RegisterGameMeshName(meshobj->GetName(), gameobj->GetBlenderObject());
+		to->GetLogicManager()->RegisterMeshName(meshobj->GetName(), meshobj);
+	}
 }
 
 bool KX_Scene::MergeScene(KX_Scene *other)
@@ -2060,6 +2075,28 @@ bool KX_Scene::MergeScene(KX_Scene *other)
 		MergeScene_GameObject(gameobj, this, other);
 	}
 
+	if (env) {
+		env->MergeEnvironment(env_other);
+		CListValue *otherObjects = other->GetObjectList();
+
+		// List of all physics objects to merge (needed by ReplicateConstraints).
+		std::vector<KX_GameObject *> physicsObjects;
+		for (unsigned int i = 0; i < otherObjects->GetCount(); ++i) {
+			KX_GameObject *gameobj = (KX_GameObject *)otherObjects->GetValue(i);
+			if (gameobj->GetPhysicsController()) {
+				physicsObjects.push_back(gameobj);
+			}
+		}
+
+		for (unsigned int i = 0; i < physicsObjects.size(); ++i) {
+			KX_GameObject *gameobj = physicsObjects[i];
+			// Replicate all constraints in the right physics environment.
+			gameobj->GetPhysicsController()->ReplicateConstraints(gameobj, physicsObjects);
+			gameobj->ClearConstraints();
+		}
+	}
+
+
 	GetTempObjectList()->MergeList(other->GetTempObjectList());
 	other->GetTempObjectList()->ReleaseAndRemoveAll();
 
@@ -2074,9 +2111,6 @@ bool KX_Scene::MergeScene(KX_Scene *other)
 
 	GetLightList()->MergeList(other->GetLightList());
 	other->GetLightList()->ReleaseAndRemoveAll();
-
-	if (env)
-		env->MergeEnvironment(env_other);
 
 	/* move materials across, assume they both use the same scene-converters
 	 * Do this after lights are merged so materials can use the lights in shaders

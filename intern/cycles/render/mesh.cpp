@@ -513,7 +513,6 @@ void Mesh::compute_bvh(SceneParams *params, Progress *progress, int n, int total
 			progress->set_status(msg, "Building BVH");
 
 			BVHParams bparams;
-			bparams.use_cache = params->use_bvh_cache;
 			bparams.use_spatial_split = params->use_bvh_spatial_split;
 			bparams.use_qbvh = params->use_qbvh;
 
@@ -1084,7 +1083,6 @@ void MeshManager::device_update_bvh(Device *device, DeviceScene *dscene, Scene *
 	bparams.top_level = true;
 	bparams.use_qbvh = scene->params.use_qbvh;
 	bparams.use_spatial_split = scene->params.use_bvh_spatial_split;
-	bparams.use_cache = scene->params.use_bvh_cache;
 
 	delete bvh;
 	bvh = BVH::create(bparams, scene->objects);
@@ -1227,6 +1225,7 @@ void MeshManager::device_update(Device *device, DeviceScene *dscene, Scene *scen
 
 	/* Update images needed for true displacement. */
 	bool need_displacement_images = false;
+	bool old_need_object_flags_update = false;
 	foreach(Mesh *mesh, scene->meshes) {
 		if(mesh->need_update &&
 		   mesh->displacement_method != Mesh::DISPLACE_BUMP)
@@ -1238,6 +1237,12 @@ void MeshManager::device_update(Device *device, DeviceScene *dscene, Scene *scen
 	if(need_displacement_images) {
 		VLOG(1) << "Updating images used for true displacement.";
 		device_update_displacement_images(device, dscene, scene, progress);
+		old_need_object_flags_update = scene->object_manager->need_flags_update;
+		scene->object_manager->device_update_flags(device,
+		                                           dscene,
+		                                           scene,
+		                                           progress,
+		                                           false);
 	}
 
 	/* device update */
@@ -1314,6 +1319,16 @@ void MeshManager::device_update(Device *device, DeviceScene *dscene, Scene *scen
 	device_update_bvh(device, dscene, scene, progress);
 
 	need_update = false;
+
+	if(need_displacement_images) {
+		/* Re-tag flags for update, so they're re-evaluated
+		 * for meshes with correct bounding boxes.
+		 *
+		 * This wouldn't cause wrong results, just true
+		 * displacement might be less optimal ot calculate.
+		 */
+		scene->object_manager->need_flags_update = old_need_object_flags_update;
+	}
 }
 
 void MeshManager::device_free(Device *device, DeviceScene *dscene)

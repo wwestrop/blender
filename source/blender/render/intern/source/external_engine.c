@@ -36,7 +36,7 @@
 
 #include "MEM_guardedalloc.h"
 
-#include "BLF_translation.h"
+#include "BLT_translation.h"
 
 #include "BLI_listbase.h"
 #include "BLI_string.h"
@@ -361,10 +361,12 @@ void RE_engine_set_error_message(RenderEngine *engine, const char *msg)
 	Render *re = engine->re;
 	if (re != NULL) {
 		RenderResult *rr = RE_AcquireResultRead(re);
-		if (rr->error != NULL) {
-			MEM_freeN(rr->error);
+		if (rr) {
+			if (rr->error != NULL) {
+				MEM_freeN(rr->error);
+			}
+			rr->error = BLI_strdup(msg);
 		}
-		rr->error = BLI_strdup(msg);
 		RE_ReleaseResult(re);
 	}
 }
@@ -454,6 +456,7 @@ void RE_bake_engine_set_engine_parameters(Render *re, Main *bmain, Scene *scene)
 	 * but it potentially leaves unfreed memory blocks
 	 * not sure how to fix this yet -- dfelinto */
 	BLI_listbase_clear(&re->r.layers);
+	BLI_listbase_clear(&re->r.views);
 }
 
 bool RE_bake_has_engine(Render *re)
@@ -706,6 +709,7 @@ int RE_engine_render(Render *re, int do_all)
 
 	if (re->result->do_exr_tile) {
 		BLI_rw_mutex_lock(&re->resultmutex, THREAD_LOCK_WRITE);
+		render_result_save_empty_result_tiles(re);
 		render_result_exr_file_end(re);
 		BLI_rw_mutex_unlock(&re->resultmutex);
 	}

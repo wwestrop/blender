@@ -38,6 +38,8 @@
 #include "BLI_linklist.h"
 #include "BLI_stackdefines.h"
 
+#include "BKE_customdata.h"
+
 #include "bmesh.h"
 #include "intern/bmesh_private.h"
 
@@ -255,6 +257,36 @@ BMFace *BM_vert_pair_share_face_by_len(
 	return f_cur;
 }
 
+BMFace *BM_edge_pair_share_face_by_len(
+        BMEdge *e_a, BMEdge *e_b,
+        BMLoop **r_l_a, BMLoop **r_l_b,
+        const bool allow_adjacent)
+{
+	BMLoop *l_cur_a = NULL, *l_cur_b = NULL;
+	BMFace *f_cur = NULL;
+
+	if (e_a->l && e_b->l) {
+		BMIter iter;
+		BMLoop *l_a, *l_b;
+
+		BM_ITER_ELEM (l_a, &iter, e_a, BM_LOOPS_OF_EDGE) {
+			if ((f_cur == NULL) || (l_a->f->len < f_cur->len)) {
+				l_b = BM_face_edge_share_loop(l_a->f, e_b);
+				if (l_b && (allow_adjacent || !BM_loop_is_adjacent(l_a, l_b))) {
+					f_cur = l_a->f;
+					l_cur_a = l_a;
+					l_cur_b = l_b;
+				}
+			}
+		}
+	}
+
+	*r_l_a = l_cur_a;
+	*r_l_b = l_cur_b;
+
+	return f_cur;
+}
+
 static float bm_face_calc_split_dot(BMLoop *l_a, BMLoop *l_b)
 {
 	float no[2][3];
@@ -285,7 +317,7 @@ float BM_loop_point_side_of_loop_test(const BMLoop *l, const float co[3])
  * Check if a point is inside the edge defined by a loop
  * (within the plane defined by the loops edge & face normal).
  *
- * \return signed, squared distablce to the edge plane, less than 0.0 when outside.
+ * \return signed, squared distance to the edge plane, less than 0.0 when outside.
  */
 float BM_loop_point_side_of_edge_test(const BMLoop *l, const float co[3])
 {
@@ -1010,10 +1042,12 @@ int BM_loop_region_loops_count(BMLoop *l)
 bool BM_vert_is_manifold_region(const BMVert *v)
 {
 	BMLoop *l_first = BM_vert_find_first_loop((BMVert *)v);
-	int count, count_total;
-
-	count = BM_loop_region_loops_count_ex(l_first, &count_total);
-	return (count == count_total);
+	if (l_first) {
+		int count, count_total;
+		count = BM_loop_region_loops_count_ex(l_first, &count_total);
+		return (count == count_total);
+	}
+	return true;
 }
 
 /**
@@ -1033,6 +1067,53 @@ bool BM_edge_is_convex(const BMEdge *e)
 			sub_v3_v3v3(l_dir, l1->next->v->co, l1->v->co);
 			return (dot_v3v3(l_dir, cross) > 0.0f);
 		}
+	}
+	return true;
+}
+
+/**
+ * \return true when loop customdata is contiguous.
+ */
+bool BM_edge_is_contiguous_loop_cd(
+        const BMEdge *e,
+        const int cd_loop_type, const int cd_loop_offset)
+{
+	BLI_assert(cd_loop_offset != -1);
+
+	if (e->l && e->l->radial_next != e->l) {
+		const BMLoop *l_base_v1 = e->l;
+		const BMLoop *l_base_v2 = e->l->next;
+		const void *l_base_cd_v1 = BM_ELEM_CD_GET_VOID_P(l_base_v1, cd_loop_offset);
+		const void *l_base_cd_v2 = BM_ELEM_CD_GET_VOID_P(l_base_v2, cd_loop_offset);
+		const BMLoop *l_iter = e->l->radial_next;
+		do {
+			const BMLoop *l_iter_v1;
+			const BMLoop *l_iter_v2;
+			const void *l_iter_cd_v1;
+			const void *l_iter_cd_v2;
+
+			if (l_iter->v == l_base_v1->v) {
+				l_iter_v1 = l_iter;
+				l_iter_v2 = l_iter->next;
+			}
+			else {
+				l_iter_v1 = l_iter->next;
+				l_iter_v2 = l_iter;
+			}
+			BLI_assert((l_iter_v1->v == l_base_v1->v) &&
+			           (l_iter_v2->v == l_base_v2->v));
+
+			l_iter_cd_v1 = BM_ELEM_CD_GET_VOID_P(l_iter_v1, cd_loop_offset);
+			l_iter_cd_v2 = BM_ELEM_CD_GET_VOID_P(l_iter_v2, cd_loop_offset);
+
+
+			if ((CustomData_data_equals(cd_loop_type, l_base_cd_v1, l_iter_cd_v1) == 0) ||
+			    (CustomData_data_equals(cd_loop_type, l_base_cd_v2, l_iter_cd_v2) == 0))
+			{
+				return false;
+			}
+
+		} while ((l_iter = l_iter->radial_next) != e->l);
 	}
 	return true;
 }
@@ -1127,6 +1208,43 @@ bool BM_face_share_edge_check(BMFace *f1, BMFace *f2)
 	l_iter = l_first = BM_FACE_FIRST_LOOP(f1);
 	do {
 		if (BM_edge_in_face(l_iter->e, f2)) {
+			return true;
+		}
+	} while ((l_iter = l_iter->next) != l_first);
+
+	return false;
+}
+
+/**
+ *  Counts the number of verts two faces share (if any).
+ */
+int BM_face_share_vert_count(BMFace *f_a, BMFace *f_b)
+{
+	BMLoop *l_iter;
+	BMLoop *l_first;
+	int count = 0;
+
+	l_iter = l_first = BM_FACE_FIRST_LOOP(f_a);
+	do {
+		if (BM_vert_in_face(l_iter->v, f_b)) {
+			count++;
+		}
+	} while ((l_iter = l_iter->next) != l_first);
+
+	return count;
+}
+
+/**
+ *  Returns true if the faces share a vert.
+ */
+bool BM_face_share_vert_check(BMFace *f_a, BMFace *f_b)
+{
+	BMLoop *l_iter;
+	BMLoop *l_first;
+
+	l_iter = l_first = BM_FACE_FIRST_LOOP(f_a);
+	do {
+		if (BM_vert_in_face(l_iter->v, f_b)) {
 			return true;
 		}
 	} while ((l_iter = l_iter->next) != l_first);
@@ -1295,6 +1413,46 @@ void BM_edge_ordered_verts_ex(
 void BM_edge_ordered_verts(const BMEdge *edge, BMVert **r_v1, BMVert **r_v2)
 {
 	BM_edge_ordered_verts_ex(edge, r_v1, r_v2, edge->l);
+}
+
+/**
+ * \return The previous loop, over \a eps_sq distance from \a l (or \a NULL if l_stop is reached).
+ */
+BMLoop *BM_loop_find_prev_nodouble(BMLoop *l, BMLoop *l_stop, const float eps_sq)
+{
+	BMLoop *l_step = l->prev;
+
+	BLI_assert(!ELEM(l_stop, NULL, l));
+
+	while (UNLIKELY(len_squared_v3v3(l->v->co, l_step->v->co) < eps_sq)) {
+		l_step = l_step->prev;
+		BLI_assert(l_step != l);
+		if (UNLIKELY(l_step == l_stop)) {
+			return NULL;
+		}
+	}
+
+	return l_step;
+}
+
+/**
+ * \return The next loop, over \a eps_sq distance from \a l (or \a NULL if l_stop is reached).
+ */
+BMLoop *BM_loop_find_next_nodouble(BMLoop *l, BMLoop *l_stop, const float eps_sq)
+{
+	BMLoop *l_step = l->next;
+
+	BLI_assert(!ELEM(l_stop, NULL, l));
+
+	while (UNLIKELY(len_squared_v3v3(l->v->co, l_step->v->co) < eps_sq)) {
+		l_step = l_step->next;
+		BLI_assert(l_step != l);
+		if (UNLIKELY(l_step == l_stop)) {
+			return NULL;
+		}
+	}
+
+	return l_step;
 }
 
 /**
@@ -1883,8 +2041,8 @@ bool BM_face_exists_multi(BMVert **varr, BMEdge **earr, int len)
 			if (/* non-boundary edge */
 			    BM_elem_flag_test(e, BM_ELEM_INTERNAL_TAG) == false &&
 			    /* ...using boundary verts */
-			    BM_elem_flag_test(e->v1, BM_ELEM_INTERNAL_TAG) == true &&
-			    BM_elem_flag_test(e->v2, BM_ELEM_INTERNAL_TAG) == true)
+			    BM_elem_flag_test(e->v1, BM_ELEM_INTERNAL_TAG) &&
+			    BM_elem_flag_test(e->v2, BM_ELEM_INTERNAL_TAG))
 			{
 				int tot_face_tag = 0;
 				BM_ITER_ELEM (f, &fiter, e, BM_FACES_OF_EDGE) {
@@ -2178,7 +2336,7 @@ static void bm_mesh_calc_volume_face(const BMFace *f, float *r_vol)
 	unsigned int (*index)[3] = BLI_array_alloca(index, tottri);
 	int j;
 
-	BM_face_calc_tessellation(f, loops, index);
+	BM_face_calc_tessellation(f, false, loops, index);
 
 	for (j = 0; j < tottri; j++) {
 		const float *p1 = loops[index[j][0]]->v->co;
@@ -2218,8 +2376,7 @@ float BM_mesh_calc_volume(BMesh *bm, bool is_signed)
  *        (or when hflag_test is set, the number of flagged faces).
  * \param r_group_index  index, length pairs into \a r_groups_array, size of return value
  *        int pairs: (array_start, array_length).
- * \param filter_fn  Filter the edges or verts we step over (depends on \a htype_step)
- *        as to which types we deal with.
+ * \param filter_fn  Filter the edge-loops or vert-loops we step over (depends on \a htype_step).
  * \param user_data  Optional user data for \a filter_fn, can be NULL.
  * \param hflag_test  Optional flag to test faces,
  *        use to exclude faces from the calculation, 0 for all faces.
@@ -2229,7 +2386,7 @@ float BM_mesh_calc_volume(BMesh *bm, bool is_signed)
  */
 int BM_mesh_calc_face_groups(
         BMesh *bm, int *r_groups_array, int (**r_group_index)[2],
-        BMElemFilterFunc filter_fn, void *user_data,
+        BMLoopFilterFunc filter_fn, void *user_data,
         const char hflag_test, const char htype_step)
 {
 #ifdef DEBUG
@@ -2322,7 +2479,7 @@ int BM_mesh_calc_face_groups(
 				do {
 					BMLoop *l_radial_iter = l_iter->radial_next;
 					if ((l_radial_iter != l_iter) &&
-					    ((filter_fn == NULL) || filter_fn((BMElem *)l_iter->e, user_data)))
+					    ((filter_fn == NULL) || filter_fn(l_iter, user_data)))
 					{
 						do {
 							BMFace *f_other = l_radial_iter->f;
@@ -2340,7 +2497,7 @@ int BM_mesh_calc_face_groups(
 				/* search for other faces */
 				l_iter = l_first = BM_FACE_FIRST_LOOP(f);
 				do {
-					if ((filter_fn == NULL) || filter_fn((BMElem *)l_iter->v, user_data)) {
+					if ((filter_fn == NULL) || filter_fn(l_iter, user_data)) {
 						BMLoop *l_other;
 						BM_ITER_ELEM (l_other, &liter, l_iter, BM_LOOPS_OF_LOOP) {
 							BMFace *f_other = l_other->f;
@@ -2387,7 +2544,7 @@ int BM_mesh_calc_face_groups(
  */
 int BM_mesh_calc_edge_groups(
         BMesh *bm, int *r_groups_array, int (**r_group_index)[2],
-        BMElemFilterFunc filter_fn, void *user_data,
+        BMVertFilterFunc filter_fn, void *user_data,
         const char hflag_test)
 {
 #ifdef DEBUG
@@ -2476,7 +2633,7 @@ int BM_mesh_calc_edge_groups(
 
 			/* search for other edges */
 			BM_ITER_ELEM (v, &viter, e, BM_VERTS_OF_EDGE) {
-				if ((filter_fn == NULL) || filter_fn((BMElem *)v, user_data)) {
+				if ((filter_fn == NULL) || filter_fn(v, user_data)) {
 					BMEdge *e_other;
 					BM_ITER_ELEM (e_other, &eiter, v, BM_EDGES_OF_VERT) {
 						if (BM_elem_flag_test(e_other, BM_ELEM_TAG) == false) {

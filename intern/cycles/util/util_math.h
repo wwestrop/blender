@@ -351,7 +351,7 @@ ccl_device_inline float2 normalize_len(const float2 a, float *t)
 ccl_device_inline float2 safe_normalize(const float2 a)
 {
 	float t = len(a);
-	return (t)? a/t: a;
+	return (t != 0.0f)? a/t: a;
 }
 
 ccl_device_inline bool operator==(const float2 a, const float2 b)
@@ -553,7 +553,7 @@ ccl_device_inline float3 normalize_len(const float3 a, float *t)
 ccl_device_inline float3 safe_normalize(const float3 a)
 {
 	float t = len(a);
-	return (t)? a/t: a;
+	return (t != 0.0f)? a/t: a;
 }
 
 #ifndef __KERNEL_OPENCL__
@@ -866,7 +866,7 @@ ccl_device_inline float4 normalize(const float4 a)
 ccl_device_inline float4 safe_normalize(const float4 a)
 {
 	float t = len(a);
-	return (t)? a/t: a;
+	return (t != 0.0f)? a/t: a;
 }
 
 ccl_device_inline float4 min(float4 a, float4 b)
@@ -1447,10 +1447,9 @@ ccl_device bool ray_triangle_intersect_uv(
 	return true;
 }
 
-ccl_device bool ray_quad_intersect(
-	float3 ray_P, float3 ray_D, float ray_t,
-	float3 quad_P, float3 quad_u, float3 quad_v,
-	float3 *isect_P, float *isect_t)
+ccl_device bool ray_quad_intersect(float3 ray_P, float3 ray_D, float ray_t,
+                                   float3 quad_P, float3 quad_u, float3 quad_v,
+                                   float3 *isect_P, float *isect_t)
 {
 	float3 v0 = quad_P - quad_u*0.5f - quad_v*0.5f;
 	float3 v1 = quad_P + quad_u*0.5f - quad_v*0.5f;

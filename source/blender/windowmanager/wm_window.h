@@ -38,15 +38,18 @@ struct wmOperator;
 void		wm_ghost_init			(bContext *C);
 void		wm_ghost_exit(void);
 
-void wm_get_screensize(int *width_r, int *height_r);
-void wm_get_desktopsize(int *width_r, int *height_r);
+void wm_get_screensize(int *r_width, int *r_height);
+void wm_get_desktopsize(int *r_width, int *r_height);
 
 wmWindow	*wm_window_new			(bContext *C);
+wmWindow	*wm_window_copy			(bContext *C, wmWindow *win_src);
+wmWindow	*wm_window_copy_test	(bContext *C, wmWindow *win_src);
 void		wm_window_free			(bContext *C, wmWindowManager *wm, wmWindow *win);
 void		wm_window_close			(bContext *C, wmWindowManager *wm, wmWindow *win);
 
 void		wm_window_title				(wmWindowManager *wm, wmWindow *win);
-void		wm_window_add_ghostwindows	(wmWindowManager *wm);
+void		wm_window_ghostwindows_ensure(wmWindowManager *wm);
+void		wm_window_ghostwindows_remove_invalid(bContext *C, wmWindowManager *wm);
 void		wm_window_process_events	(const bContext *C);
 void		wm_window_process_events_nosleep(void);
 
@@ -55,16 +58,16 @@ void		wm_window_make_drawable(wmWindowManager *wm, wmWindow *win);
 void		wm_window_raise			(wmWindow *win);
 void		wm_window_lower			(wmWindow *win);
 void		wm_window_set_size		(wmWindow *win, int width, int height);
-void		wm_window_get_position	(wmWindow *win, int *posx_r, int *posy_r);
+void		wm_window_get_position	(wmWindow *win, int *r_pos_x, int *r_pos_y);
 void		wm_window_swap_buffers	(wmWindow *win);
 void		wm_window_set_swap_interval(wmWindow *win, int interval);
 bool		wm_window_get_swap_interval(wmWindow *win, int *intervalOut);
 
 float		wm_window_pixelsize(wmWindow *win);
 
-void		wm_get_cursor_position	(wmWindow *win, int *x, int *y);
-
-wmWindow	*wm_window_copy			(bContext *C, wmWindow *winorig);
+void		wm_get_cursor_position			(wmWindow *win, int *x, int *y);
+void		wm_cursor_position_from_ghost	(wmWindow *win, int *x, int *y);
+void		wm_cursor_position_to_ghost		(wmWindow *win, int *x, int *y);
 
 void		wm_window_testbreak		(void);
 
@@ -74,6 +77,7 @@ void		wm_window_IME_end	(wmWindow *win);
 #endif
 
 /* *************** window operators ************** */
+int			wm_window_close_exec(bContext *C, struct wmOperator *op);
 int			wm_window_duplicate_exec(bContext *C, struct wmOperator *op);
 int			wm_window_fullscreen_toggle_exec(bContext *C, struct wmOperator *op);
 

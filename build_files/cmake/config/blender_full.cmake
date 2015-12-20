@@ -1,5 +1,4 @@
-# turn everything OFF except for python which defaults to ON
-# and is needed for the UI
+# Turn everything ON thats expected for an official release builds.
 #
 # Example usage:
 #   cmake -C../blender/build_files/cmake/config/blender_full.cmake  ../blender
@@ -11,8 +10,10 @@ set(WITH_CODEC_AVI           ON  CACHE BOOL "" FORCE)
 set(WITH_CODEC_FFMPEG        ON  CACHE BOOL "" FORCE)
 set(WITH_CODEC_SNDFILE       ON  CACHE BOOL "" FORCE)
 set(WITH_CYCLES              ON  CACHE BOOL "" FORCE)
+set(WITH_CYCLES_OSL          ON  CACHE BOOL "" FORCE)
 set(WITH_FFTW3               ON  CACHE BOOL "" FORCE)
 set(WITH_LIBMV               ON  CACHE BOOL "" FORCE)
+set(WITH_LIBMV_SCHUR_SPECIALIZATIONS ON CACHE BOOL "" FORCE)
 set(WITH_GAMEENGINE          ON  CACHE BOOL "" FORCE)
 set(WITH_COMPOSITOR          ON  CACHE BOOL "" FORCE)
 set(WITH_FREESTYLE           ON  CACHE BOOL "" FORCE)
@@ -42,7 +43,6 @@ set(WITH_OPENAL              ON  CACHE BOOL "" FORCE)
 set(WITH_OPENCOLLADA         ON  CACHE BOOL "" FORCE)
 set(WITH_OPENCOLORIO         ON  CACHE BOOL "" FORCE)
 set(WITH_OPENMP              ON  CACHE BOOL "" FORCE)
-set(WITH_OPENNL              ON  CACHE BOOL "" FORCE)
 set(WITH_PYTHON_INSTALL      ON  CACHE BOOL "" FORCE)
 set(WITH_RAYOPTIMIZATION     ON  CACHE BOOL "" FORCE)
 set(WITH_SDL                 ON  CACHE BOOL "" FORCE)
@@ -52,11 +52,18 @@ set(WITH_X11_XF86VMODE       ON  CACHE BOOL "" FORCE)
 set(WITH_PLAYER              ON  CACHE BOOL "" FORCE)
 set(WITH_MEM_JEMALLOC        ON  CACHE BOOL "" FORCE)
 
-if(UNIX AND NOT APPLE)
-	set(WITH_DOC_MANPAGE         ON  CACHE BOOL "" FORCE)
-endif()
 
-if(APPLE)
+# platform dependant options
+if(UNIX AND NOT APPLE)
+	set(WITH_JACK                ON  CACHE BOOL "" FORCE)
+	set(WITH_DOC_MANPAGE         ON  CACHE BOOL "" FORCE)
+	set(WITH_OPENSUBDIV          ON  CACHE BOOL "" FORCE)
+elseif(WIN32)
+	set(WITH_JACK                OFF CACHE BOOL "" FORCE)
+	set(WITH_OPENSUBDIV          ON  CACHE BOOL "" FORCE)
+elseif (APPLE)
+	set(WITH_JACK                ON  CACHE BOOL "" FORCE)
 	set(WITH_CODEC_QUICKTIME     ON  CACHE BOOL "" FORCE)
+	set(WITH_OPENSUBDIV          OFF CACHE BOOL "" FORCE)
 endif()
 

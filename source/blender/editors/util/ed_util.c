@@ -49,7 +49,7 @@
 #include "BIF_gl.h"
 #include "BIF_glutil.h"
 
-#include "BLF_translation.h"
+#include "BLT_translation.h"
 
 #include "BKE_context.h"
 #include "BKE_global.h"
@@ -111,7 +111,7 @@ void ED_editors_init(bContext *C)
 
 	/* image editor paint mode */
 	if (sce) {
-		ED_space_image_paint_update(wm, sce->toolsettings);
+		ED_space_image_paint_update(wm, sce);
 	}
 
 	SWAP(int, reports->flag, reports_flag_prev);
@@ -343,4 +343,24 @@ void ED_spacedata_id_unref(struct SpaceLink *sl, const ID *id)
 			ED_node_id_unref((SpaceNode *)sl, id);
 			break;
 	}
+}
+
+static int ed_flush_edits_exec(bContext *C, wmOperator *UNUSED(op))
+{
+	ED_editors_flush_edits(C, false);
+	return OPERATOR_FINISHED;
+}
+
+void ED_OT_flush_edits(wmOperatorType *ot)
+{
+	/* identifiers */
+	ot->name = "Flush Edits";
+	ot->description = "Flush edit data from active editing modes";
+	ot->idname = "ED_OT_flush_edits";
+
+	/* api callbacks */
+	ot->exec = ed_flush_edits_exec;
+
+	/* flags */
+	ot->flag = OPTYPE_INTERNAL;
 }

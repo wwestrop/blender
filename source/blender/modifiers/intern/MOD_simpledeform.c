@@ -40,6 +40,7 @@
 #include "BLI_utildefines.h"
 
 #include "BKE_cdderivedmesh.h"
+#include "BKE_library_query.h"
 #include "BKE_modifier.h"
 #include "BKE_deform.h"
 
@@ -279,11 +280,12 @@ static CustomDataMask requiredDataMask(Object *UNUSED(ob), ModifierData *md)
 	return dataMask;
 }
 
-static void foreachObjectLink(ModifierData *md, Object *ob,
-                              void (*walk)(void *userData, Object *ob, Object **obpoin), void *userData)
+static void foreachObjectLink(
+        ModifierData *md, Object *ob,
+        ObjectWalkFunc walk, void *userData)
 {
 	SimpleDeformModifierData *smd  = (SimpleDeformModifierData *)md;
-	walk(userData, ob, &smd->origin);
+	walk(userData, ob, &smd->origin, IDWALK_NOP);
 }
 
 static void updateDepgraph(ModifierData *md, DagForest *forest,
@@ -296,6 +298,18 @@ static void updateDepgraph(ModifierData *md, DagForest *forest,
 
 	if (smd->origin)
 		dag_add_relation(forest, dag_get_node(forest, smd->origin), obNode, DAG_RL_OB_DATA, "SimpleDeform Modifier");
+}
+
+static void updateDepsgraph(ModifierData *md,
+                            struct Main *UNUSED(bmain),
+                            struct Scene *UNUSED(scene),
+                            Object *UNUSED(ob),
+                            struct DepsNodeHandle *node)
+{
+	SimpleDeformModifierData *smd  = (SimpleDeformModifierData *)md;
+	if (smd->origin != NULL) {
+		DEG_add_object_relation(node, smd->origin, DEG_OB_COMP_TRANSFORM, "SimpleDeform Modifier");
+	}
 }
 
 static void deformVerts(ModifierData *md, Object *ob,
@@ -362,6 +376,7 @@ ModifierTypeInfo modifierType_SimpleDeform = {
 	/* freeData */          NULL,
 	/* isDisabled */        NULL,
 	/* updateDepgraph */    updateDepgraph,
+	/* updateDepsgraph */   updateDepsgraph,
 	/* dependsOnTime */     NULL,
 	/* dependsOnNormals */	NULL,
 	/* foreachObjectLink */ foreachObjectLink,

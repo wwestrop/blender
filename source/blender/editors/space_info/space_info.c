@@ -37,7 +37,7 @@
 #include "BLI_blenlib.h"
 #include "BLI_utildefines.h"
 
-#include "BLF_translation.h"
+#include "BLT_translation.h"
 
 #include "BKE_context.h"
 #include "BKE_global.h"
@@ -122,7 +122,7 @@ static SpaceLink *info_duplicate(SpaceLink *sl)
 
 
 /* add handlers, stuff you only do once or on area/region changes */
-static void info_main_area_init(wmWindowManager *wm, ARegion *ar)
+static void info_main_region_init(wmWindowManager *wm, ARegion *ar)
 {
 	wmKeyMap *keymap;
 
@@ -144,7 +144,7 @@ static void info_textview_update_rect(const bContext *C, ARegion *ar)
 	UI_view2d_totRect_set(v2d, ar->winx - 1, info_textview_height(sinfo, ar, CTX_wm_reports(C)));
 }
 
-static void info_main_area_draw(const bContext *C, ARegion *ar)
+static void info_main_region_draw(const bContext *C, ARegion *ar)
 {
 	/* draw entirely, view changes should be handled here */
 	SpaceInfo *sinfo = CTX_wm_space_info(C);
@@ -228,17 +228,17 @@ static void info_keymap(struct wmKeyConfig *keyconf)
 }
 
 /* add handlers, stuff you only do once or on area/region changes */
-static void info_header_area_init(wmWindowManager *UNUSED(wm), ARegion *ar)
+static void info_header_region_init(wmWindowManager *UNUSED(wm), ARegion *ar)
 {
 	ED_region_header_init(ar);
 }
 
-static void info_header_area_draw(const bContext *C, ARegion *ar)
+static void info_header_region_draw(const bContext *C, ARegion *ar)
 {
 	ED_region_header(C, ar);
 }
 
-static void info_main_area_listener(bScreen *UNUSED(sc), ScrArea *UNUSED(sa), ARegion *ar, wmNotifier *wmn)
+static void info_main_region_listener(bScreen *UNUSED(sc), ScrArea *UNUSED(sa), ARegion *ar, wmNotifier *wmn)
 {
 	// SpaceInfo *sinfo = sa->spacedata.first;
 
@@ -284,16 +284,13 @@ static void info_header_listener(bScreen *UNUSED(sc), ScrArea *UNUSED(sa), ARegi
 static void recent_files_menu_draw(const bContext *UNUSED(C), Menu *menu)
 {
 	struct RecentFile *recent;
-	char file[FILE_MAX];
 	uiLayout *layout = menu->layout;
 	uiLayoutSetOperatorContext(layout, WM_OP_EXEC_REGION_WIN);
-	if (G.recent_files.first) {
+	if (!BLI_listbase_is_empty(&G.recent_files)) {
 		for (recent = G.recent_files.first; (recent); recent = recent->next) {
-			BLI_split_file_part(recent->filepath, file, sizeof(file));
-			if (BLO_has_bfile_extension(file))
-				uiItemStringO(layout, BLI_path_basename(recent->filepath), ICON_FILE_BLEND, "WM_OT_open_mainfile", "filepath", recent->filepath);
-			else
-				uiItemStringO(layout, BLI_path_basename(recent->filepath), ICON_FILE_BACKUP, "WM_OT_open_mainfile", "filepath", recent->filepath);
+			const char *file = BLI_path_basename(recent->filepath);
+			const int icon = BLO_has_bfile_extension(file) ? ICON_FILE_BLEND : ICON_FILE_BACKUP;
+			uiItemStringO(layout, file, icon, "WM_OT_open_mainfile", "filepath", recent->filepath);
 		}
 	}
 	else {
@@ -308,7 +305,7 @@ static void recent_files_menu_register(void)
 	mt = MEM_callocN(sizeof(MenuType), "spacetype info menu recent files");
 	strcpy(mt->idname, "INFO_MT_file_open_recent");
 	strcpy(mt->label, N_("Open Recent..."));
-	strcpy(mt->translation_context, BLF_I18NCONTEXT_DEFAULT_BPYRNA);
+	strcpy(mt->translation_context, BLT_I18NCONTEXT_DEFAULT_BPYRNA);
 	mt->draw = recent_files_menu_draw;
 	WM_menutype_add(mt);
 }
@@ -384,9 +381,9 @@ void ED_spacetype_info(void)
 	art->regionid = RGN_TYPE_WINDOW;
 	art->keymapflag = ED_KEYMAP_UI | ED_KEYMAP_VIEW2D | ED_KEYMAP_FRAMES;
 
-	art->init = info_main_area_init;
-	art->draw = info_main_area_draw;
-	art->listener = info_main_area_listener;
+	art->init = info_main_region_init;
+	art->draw = info_main_region_draw;
+	art->listener = info_main_region_listener;
 
 	BLI_addhead(&st->regiontypes, art);*/
 	
@@ -397,8 +394,8 @@ void ED_spacetype_info(void)
 	
 	art->keymapflag = ED_KEYMAP_UI | ED_KEYMAP_VIEW2D | ED_KEYMAP_FRAMES | ED_KEYMAP_HEADER;
 	art->listener = info_header_listener;
-	art->init = info_header_area_init;
-	art->draw = info_header_area_draw;
+	art->init = info_header_region_init;
+	art->draw = info_header_region_draw;
 	
 	BLI_addhead(&st->regiontypes, art);
 

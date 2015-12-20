@@ -35,7 +35,6 @@
 #include <time.h>
 
 #include "DNA_packedFile_types.h"
-#include "DNA_userdef_types.h"
 
 #include "BLI_utildefines.h"
 #include "BLI_path_util.h"
@@ -56,7 +55,6 @@
 #include "IMB_imbuf.h"
 #include "IMB_colormanagement.h"
 
-#include "BIF_gl.h"
 #include "GPU_draw.h"
 #include "GPU_debug.h"
 
@@ -64,6 +62,14 @@
 #include "DNA_scene_types.h"
 
 #include "MEM_guardedalloc.h"
+
+static void rna_ImagePackedFile_save(ImagePackedFile *imapf, ReportList *reports)
+{
+	if (writePackedFile(reports, imapf->filepath, imapf->packedfile, 0) != RET_OK) {
+		BKE_reportf(reports, RPT_ERROR, "Image could not save packed file to '%s'",
+		            imapf->filepath);
+	}
+}
 
 static void rna_Image_save_render(Image *image, bContext *C, ReportList *reports, const char *path, Scene *scene)
 {
@@ -117,12 +123,10 @@ static void rna_Image_save(Image *image, Main *bmain, bContext *C, ReportList *r
 		BLI_strncpy(filename, image->name, sizeof(filename));
 		BLI_path_abs(filename, ID_BLEND_PATH(bmain, &image->id));
 
-		if (image->packedfile) {
-			if (writePackedFile(reports, image->name, image->packedfile, 0) != RET_OK) {
-				BKE_reportf(reports, RPT_ERROR, "Image '%s' could not save packed file to '%s'", image->id.name + 2, image->name);
-			}
-		}
-		else if (IMB_saveiff(ibuf, filename, ibuf->flags)) {
+		/* note, we purposefully ignore packed files here,
+		 * developers need to explicitly write them via 'packed_files' */
+
+		if (IMB_saveiff(ibuf, filename, ibuf->flags)) {
 			image->type = IMA_TYPE_IMAGE;
 
 			if (image->source == IMA_SRC_GENERATED)
@@ -154,17 +158,14 @@ static void rna_Image_pack(
 		BKE_report(reports, RPT_ERROR, "Cannot pack edited image from disk, only as internal PNG");
 	}
 	else {
-		if (image->packedfile) {
-			freePackedFile(image->packedfile);
-			image->packedfile = NULL;
-		}
+		BKE_image_free_packedfiles(image);
 		if (as_png) {
 			BKE_image_memorypack(image);
 		}
 		else if (data) {
 			char *data_dup = MEM_mallocN(sizeof(*data_dup) * (size_t)data_len, __func__);
 			memcpy(data_dup, data, (size_t)data_len);
-			image->packedfile = newPackedFileMemory(data_dup, data_len);
+			BKE_image_packfiles_from_mem(reports, image, data_dup, (size_t)data_len);
 		}
 		else {
 			BKE_image_packfiles(reports, image, ID_BLEND_PATH(bmain, &image->id));
@@ -177,7 +178,7 @@ static void rna_Image_pack(
 
 static void rna_Image_unpack(Image *image, ReportList *reports, int method)
 {
-	if (!image->packedfile) {
+	if (!BKE_image_has_packedfile(image)) {
 		BKE_report(reports, RPT_ERROR, "Image not packed");
 	}
 	else if (BKE_image_is_animated(image)) {
@@ -248,7 +249,6 @@ static int rna_Image_gl_load(Image *image, ReportList *reports, int frame, int f
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (GLint)filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLint)mag);
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 	error = glGetError();
 
@@ -295,6 +295,15 @@ static void rna_Image_buffers_free(Image *image)
 
 #else
 
+void RNA_api_image_packed_file(StructRNA *srna)
+{
+	FunctionRNA *func;
+
+	func = RNA_def_function(srna, "save", "rna_ImagePackedFile_save");
+	RNA_def_function_ui_description(func, "Save the packed file to its filepath");
+	RNA_def_function_flag(func, FUNC_USE_REPORTS);
+}
+
 void RNA_api_image(StructRNA *srna)
 {
 	FunctionRNA *func;
@@ -323,7 +332,7 @@ void RNA_api_image(StructRNA *srna)
 	func = RNA_def_function(srna, "unpack", "rna_Image_unpack");
 	RNA_def_function_ui_description(func, "Save an image packed in the .blend file to disk");
 	RNA_def_function_flag(func, FUNC_USE_REPORTS);
-	RNA_def_enum(func, "method", unpack_method_items, PF_USE_LOCAL, "method", "How to unpack");
+	RNA_def_enum(func, "method", rna_enum_unpack_method_items, PF_USE_LOCAL, "method", "How to unpack");
 
 	func = RNA_def_function(srna, "reload", "rna_Image_reload");
 	RNA_def_function_ui_description(func, "Reload the image from its source path");

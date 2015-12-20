@@ -10,9 +10,6 @@ IGNORE = (
     "/ik_glut_test/",
 
     # specific source files
-    "extern/Eigen2/Eigen/src/Cholesky/CholeskyInstantiations.cpp",
-    "extern/Eigen2/Eigen/src/Core/CoreInstantiations.cpp",
-    "extern/Eigen2/Eigen/src/QR/QrInstantiations.cpp",
     "extern/bullet2/src/BulletCollision/CollisionDispatch/btBox2dBox2dCollisionAlgorithm.cpp",
     "extern/bullet2/src/BulletCollision/CollisionDispatch/btConvex2dConvex2dAlgorithm.cpp",
     "extern/bullet2/src/BulletCollision/CollisionDispatch/btInternalEdgeUtility.cpp",
@@ -74,3 +71,6 @@ IGNORE = (
 UTF8_CHECK = True
 
 SOURCE_DIR = os.path.normpath(os.path.abspath(os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))))
+
+# doesn't have to exist, just use as reference
+BUILD_DIR = os.path.normpath(os.path.abspath(os.path.normpath(os.path.join(SOURCE_DIR, "..", "build"))))

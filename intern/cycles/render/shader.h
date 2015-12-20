@@ -43,6 +43,7 @@ CCL_NAMESPACE_BEGIN
 
 class Device;
 class DeviceScene;
+class DeviceRequestedFeatures;
 class Mesh;
 class Progress;
 class Scene;
@@ -107,6 +108,7 @@ public:
 	bool has_bssrdf_bump;
 	bool has_heterogeneous_volume;
 	bool has_object_dependency;
+	bool has_integrator_dependency;
 
 	/* requested mesh attributes */
 	AttributeRequestSet attributes;
@@ -165,6 +167,10 @@ public:
 	 * have any shader assigned explicitly */
 	static void add_default(Scene *scene);
 
+	/* Selective nodes compilation. */
+	void get_requested_features(Scene *scene,
+	                            DeviceRequestedFeatures *requested_features);
+
 protected:
 	ShaderManager();
 
@@ -175,6 +181,9 @@ protected:
 	static vector<float> beckmann_table;
 
 	size_t beckmann_table_offset;
+
+	void get_requested_graph_features(ShaderGraph *graph,
+	                                  DeviceRequestedFeatures *requested_features);
 };
 
 CCL_NAMESPACE_END

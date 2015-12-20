@@ -32,6 +32,7 @@ add_subdirectory(opencolorio)
 add_subdirectory(mikktspace)
 add_subdirectory(raskter)
 add_subdirectory(glew-mx)
+add_subdirectory(eigen)
 
 if(WITH_AUDASPACE)
 	add_subdirectory(audaspace)
@@ -73,12 +74,11 @@ if(WITH_BULLET)
 	add_subdirectory(rigidbody)
 endif()
 
-if(WITH_OPENNL)
-	add_subdirectory(opennl)
+if(WITH_OPENSUBDIV)
+	add_subdirectory(opensubdiv)
 endif()
 
 # only windows needs utf16 converter
 if(WIN32)
 	add_subdirectory(utfconv)
 endif()
-

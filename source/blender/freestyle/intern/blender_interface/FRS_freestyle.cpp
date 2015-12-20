@@ -68,6 +68,8 @@ extern "C" {
 #define DEFAULT_SPHERE_RADIUS 1.0f
 #define DEFAULT_DKR_EPSILON   0.0f
 
+struct FreestyleGlobals g_freestyle;
+
 // Freestyle configuration
 static bool freestyle_is_initialized = false;
 static Config::Path *pathconfig = NULL;
@@ -78,14 +80,6 @@ static AppView *view = NULL;
 static FreestyleLineSet lineset_buffer;
 static bool lineset_copied = false;
 
-// camera information
-float freestyle_viewpoint[3];
-float freestyle_mv[4][4];
-float freestyle_proj[4][4];
-int freestyle_viewport[4];
-
-// current scene
-Scene *freestyle_scene;
 
 static void load_post_callback(struct Main * /*main*/, struct ID * /*id*/, void * /*arg*/)
 {
@@ -113,7 +107,7 @@ void FRS_initialize()
 	view = new AppView;
 	controller->setView(view);
 	controller->Clear();
-	freestyle_scene = NULL;
+	g_freestyle.scene = NULL;
 	lineset_copied = false;
 
 	BLI_callback_add(&load_post_callback_funcstore, BLI_CB_EVT_LOAD_POST);
@@ -159,9 +153,9 @@ static void init_view(Render *re)
 		break;
 	}
 
-	freestyle_viewport[0] = freestyle_viewport[1] = 0;
-	freestyle_viewport[2] = width;
-	freestyle_viewport[3] = height;
+	g_freestyle.viewport[0] = g_freestyle.viewport[1] = 0;
+	g_freestyle.viewport[2] = width;
+	g_freestyle.viewport[3] = height;
 
 	view->setWidth(width);
 	view->setHeight(height);
@@ -184,17 +178,15 @@ static void init_camera(Render *re)
 	// Therefore, the view point (i.e., camera position) is at the origin, and
 	// the model-view matrix is simply the identity matrix.
 
-	freestyle_viewpoint[0] = 0.0;
-	freestyle_viewpoint[1] = 0.0;
-	freestyle_viewpoint[2] = 0.0;
+	zero_v3(g_freestyle.viewpoint);
 
-	unit_m4(freestyle_mv);
+	unit_m4(g_freestyle.mv);
 
-	copy_m4_m4(freestyle_proj, re->winmat);
+	copy_m4_m4(g_freestyle.proj, re->winmat);
 
 #if 0
-	print_m4("mv", freestyle_mv);
-	print_m4("proj", freestyle_proj);
+	print_m4("mv", g_freestyle.mv);
+	print_m4("proj", g_freestyle.proj);
 #endif
 }
 
@@ -493,12 +485,18 @@ void FRS_composite_result(Render *re, SceneRenderLayer *srl, Render *freestyle_r
 	rl = render_get_active_layer( freestyle_render, freestyle_render->result );
 	if (!rl) {
 		if (G.debug & G_DEBUG_FREESTYLE) {
-			cout << "No Freestyle result image to composite" << endl;
+			cout << "No source render layer to composite" << endl;
 		}
 		return;
 	}
 
-	src = RE_RenderLayerGetPass(rl, SCE_PASS_COMBINED, re->viewname);
+	src = RE_RenderLayerGetPass(rl, SCE_PASS_COMBINED, freestyle_render->viewname);
+	if (!src) {
+		if (G.debug & G_DEBUG_FREESTYLE) {
+			cout << "No source result image to composite" << endl;
+		}
+		return;
+	}
 #if 0
 	if (G.debug & G_DEBUG_FREESTYLE) {
 		cout << "src: " << rl->rectx << " x " << rl->recty << endl;
@@ -506,13 +504,19 @@ void FRS_composite_result(Render *re, SceneRenderLayer *srl, Render *freestyle_r
 #endif
 
 	rl = RE_GetRenderLayer(re->result, srl->name);
-	if (!rl || src == NULL) {
+	if (!rl) {
 		if (G.debug & G_DEBUG_FREESTYLE) {
-			cout << "No layer to composite to" << endl;
+			cout << "No destination render layer to composite to" << endl;
 		}
 		return;
 	}
 	dest = RE_RenderLayerGetPass(rl, SCE_PASS_COMBINED, re->viewname);
+	if (!dest) {
+		if (G.debug & G_DEBUG_FREESTYLE) {
+			cout << "No destination result image to composite to" << endl;
+		}
+		return;
+	}
 #if 0
 	if (G.debug & G_DEBUG_FREESTYLE) {
 		cout << "dest: " << rl->rectx << " x " << rl->recty << endl;
@@ -564,7 +568,7 @@ int FRS_is_freestyle_enabled(SceneRenderLayer *srl)
 	return (!(srl->layflag & SCE_LAY_DISABLE) && srl->layflag & SCE_LAY_FRS && displayed_layer_count(srl) > 0);
 }
 
-void FRS_init_stroke_rendering(Render *re)
+void FRS_init_stroke_renderer(Render *re)
 {
 	if (G.debug & G_DEBUG_FREESTYLE) {
 		cout << endl;
@@ -574,9 +578,13 @@ void FRS_init_stroke_rendering(Render *re)
 	}
 
 	init_view(re);
-	init_camera(re);
 
 	controller->ResetRenderCount();
+}
+
+void FRS_begin_stroke_rendering(Render *re)
+{
+	init_camera(re);
 }
 
 Render *FRS_do_stroke_rendering(Render *re, SceneRenderLayer *srl, int render)
@@ -617,11 +625,11 @@ Render *FRS_do_stroke_rendering(Render *re, SceneRenderLayer *srl, int render)
 			re->i.infostr = "Freestyle: Stroke rendering";
 			re->stats_draw(re->sdh, &re->i);
 			re->i.infostr = NULL;
-			freestyle_scene = re->scene;
+			g_freestyle.scene = re->scene;
 			controller->DrawStrokes();
 			freestyle_render = controller->RenderStrokes(re, true);
 			controller->CloseFile();
-			freestyle_scene = NULL;
+			g_freestyle.scene = NULL;
 
 			// composite result
 			FRS_composite_result(re, srl, freestyle_render);
@@ -633,7 +641,7 @@ Render *FRS_do_stroke_rendering(Render *re, SceneRenderLayer *srl, int render)
 	return freestyle_render;
 }
 
-void FRS_finish_stroke_rendering(Render * /*re*/)
+void FRS_end_stroke_rendering(Render * /*re*/)
 {
 	// clear canvas
 	controller->Clear();
@@ -682,10 +690,10 @@ void FRS_paste_active_lineset(FreestyleConfig *config)
 
 	if (lineset) {
 		if (lineset->linestyle)
-			lineset->linestyle->id.us--;
+			id_us_min(&lineset->linestyle->id);
 		lineset->linestyle = lineset_buffer.linestyle;
 		if (lineset->linestyle)
-			lineset->linestyle->id.us++;
+			id_us_plus(&lineset->linestyle->id);
 		lineset->flags = lineset_buffer.flags;
 		lineset->selection = lineset_buffer.selection;
 		lineset->qi = lineset_buffer.qi;
@@ -694,12 +702,12 @@ void FRS_paste_active_lineset(FreestyleConfig *config)
 		lineset->edge_types = lineset_buffer.edge_types;
 		lineset->exclude_edge_types = lineset_buffer.exclude_edge_types;
 		if (lineset->group) {
-			lineset->group->id.us--;
+			id_us_min(&lineset->group->id);
 			lineset->group = NULL;
 		}
 		if (lineset_buffer.group) {
 			lineset->group = lineset_buffer.group;
-			lineset->group->id.us++;
+			id_us_plus(&lineset->group->id);
 		}
 		strcpy(lineset->name, lineset_buffer.name);
 		BKE_freestyle_lineset_unique_name(config, lineset);

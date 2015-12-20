@@ -70,9 +70,10 @@ GHOST_WindowWin32::GHOST_WindowWin32(GHOST_SystemWin32 *system,
         GHOST_TUns32 height,
         GHOST_TWindowState state,
         GHOST_TDrawingContextType type,
-        bool wantStereoVisual, bool warnOld,
+        bool wantStereoVisual,
         GHOST_TUns16 wantNumOfAASamples,
-        GHOST_TEmbedderWindowID parentwindowhwnd)
+        GHOST_TEmbedderWindowID parentwindowhwnd,
+        bool is_debug)
     : GHOST_Window(width, height, state,
                    wantStereoVisual, false, wantNumOfAASamples),
       m_inLiveResize(false),
@@ -87,7 +88,8 @@ GHOST_WindowWin32::GHOST_WindowWin32(GHOST_SystemWin32 *system,
       m_tablet(0),
       m_maxPressure(0),
       m_normal_state(GHOST_kWindowStateNormal),
-      m_parentWindowHwnd(parentwindowhwnd)
+      m_parentWindowHwnd(parentwindowhwnd),
+      m_debug_context(is_debug)
 {
 	OSVERSIONINFOEX versionInfo;
 	bool hasMinVersionForTaskbar = false;
@@ -96,13 +98,6 @@ GHOST_WindowWin32::GHOST_WindowWin32(GHOST_SystemWin32 *system,
 	
 	versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	
-#if !defined(WITH_GL_EGL)
-	if (!warnOld)
-		GHOST_ContextWGL::unSetWarningOld();
-#else
-	(void)(warnOld);
-#endif
-
 	if (!GetVersionEx((OSVERSIONINFO *)&versionInfo)) {
 		versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 		if (GetVersionEx((OSVERSIONINFO *)&versionInfo)) {
@@ -631,7 +626,7 @@ GHOST_Context *GHOST_WindowWin32::newDrawingContext(GHOST_TDrawingContextType ty
 		        m_wantNumOfAASamples,
 		        m_hWnd,
 		        m_hDC,
-		        WGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
+		        WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 		        3, 2,
 		        GHOST_OPENGL_WGL_CONTEXT_FLAGS,
 		        GHOST_OPENGL_WGL_RESET_NOTIFICATION_STRATEGY);
@@ -651,8 +646,14 @@ GHOST_Context *GHOST_WindowWin32::newDrawingContext(GHOST_TDrawingContextType ty
 		        m_wantNumOfAASamples,
 		        m_hWnd,
 		        m_hDC,
+#if 1
 		        0, // profile bit
-		        0, 0,
+		        2, 1, // GL version requested
+#else
+		        // switch to this for Blender 2.8 development
+		        WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+		        3, 2,
+#endif
 		        GHOST_OPENGL_WGL_CONTEXT_FLAGS,
 		        GHOST_OPENGL_WGL_RESET_NOTIFICATION_STRATEGY);
 #else
@@ -689,8 +690,14 @@ GHOST_Context *GHOST_WindowWin32::newDrawingContext(GHOST_TDrawingContextType ty
 		        m_wantNumOfAASamples,
 		        m_hWnd,
 		        m_hDC,
+#if 1
 		        0, // profile bit
-		        0, 0,
+		        2, 1, // GL version requested
+#else
+		        // switch to this for Blender 2.8 development
+		        EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT,
+		        3, 2,
+#endif
 		        GHOST_OPENGL_EGL_CONTEXT_FLAGS,
 		        GHOST_OPENGL_EGL_RESET_NOTIFICATION_STRATEGY,
 		        EGL_OPENGL_API);

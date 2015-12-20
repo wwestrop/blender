@@ -47,7 +47,6 @@
 
 CCL_NAMESPACE_BEGIN
 
-/* TODO(sergey): Make sure it does not conflict with SSE intrinsics. */
 ccl_device_inline float madd(const float a, const float b, const float c)
 {
 	/* NOTE: In the future we may want to explicitly ask for a fused
@@ -248,7 +247,7 @@ ccl_device float fast_sinpif(float x)
 	 * The basic idea of this approximation starts with the coarse approximation:
 	 *      sin(pi*x) ~= f(x) =  4 * (x - x * abs(x))
 	 *
-	 * This approximation always _over_ estimates the target. On the otherhand,
+	 * This approximation always _over_ estimates the target. On the other hand,
 	 * the curve:
 	 *      sin(pi*x) ~= f(x) * abs(f(x)) / 4
 	 *
@@ -360,7 +359,7 @@ ccl_device float fast_log2f(float x)
 {
 	/* NOTE: clamp to avoid special cases and make result "safe" from large
 	 * negative values/nans. */
-	clamp(x, FLT_MIN, FLT_MAX);
+	x = clamp(x, FLT_MIN, FLT_MAX);
 	unsigned bits = __float_as_uint(x);
 	int exponent = (int)(bits >> 23) - 127;
 	float f = __uint_as_float((bits & 0x007FFFFF) | 0x3f800000) - 1.0f;
@@ -402,7 +401,7 @@ ccl_device float fast_logb(float x)
 {
 	/* Don't bother with denormals. */
 	x = fabsf(x);
-	clamp(x, FLT_MIN, FLT_MAX);
+	x = clamp(x, FLT_MIN, FLT_MAX);
 	unsigned bits = __float_as_uint(x);
 	return (int)(bits >> 23) - 127;
 }
@@ -410,7 +409,7 @@ ccl_device float fast_logb(float x)
 ccl_device float fast_exp2f(float x)
 {
 	/* Clamp to safe range for final addition. */
-	clamp(x, -126.0f, 126.0f);
+	x = clamp(x, -126.0f, 126.0f);
 	/* Range reduction. */
 	int m = (int)x; x -= m;
 	x = 1.0f - (1.0f - x); /* Crush denormals (does not affect max ulps!). */

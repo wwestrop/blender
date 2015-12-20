@@ -79,6 +79,11 @@ else()
 			TARGETS blenderplayer
 			DESTINATION bin
 		)
+	else()
+		install(
+			TARGETS blenderplayer
+			DESTINATION "."
+		)
 	endif()
 endif()
 
@@ -106,6 +111,7 @@ endif()
 		bf_intern_ghostndof3dconnexion
 		bf_rna
 		bf_blenkernel
+		bf_depsgraph
 		bf_physics
 		bf_intern_rigidbody
 		bf_blenloader
@@ -149,6 +155,7 @@ endif()
 		bf_dna
 		ge_videotex
 		bf_blenfont
+		bf_blentranslation
 		bf_intern_audaspace
 		blenkernel_blc
 		bf_bmesh
@@ -162,8 +169,8 @@ endif()
 		extern_recastnavigation
 		bf_intern_raskter
 		bf_intern_opencolorio
-		bf_intern_opennl
 		bf_intern_glew_mx
+		bf_intern_eigen
 		extern_rangetree
 		extern_wcwidth
 		extern_libmv
@@ -187,8 +194,6 @@ endif()
 		list(APPEND BLENDER_SORTED_LIBS extern_ceres)
 	endif()
 
-	list(APPEND BLENDER_SORTED_LIBS extern_colamd)
-
 	if(WITH_MOD_BOOLEAN)
 		list(APPEND BLENDER_SORTED_LIBS extern_carve)
 	endif()
@@ -207,6 +212,10 @@ endif()
 
 	if(WITH_INTERNATIONAL)
 		list(APPEND BLENDER_SORTED_LIBS bf_intern_locale)
+	endif()
+
+	if(WITH_OPENSUBDIV)
+		list(APPEND BLENDER_SORTED_LIBS bf_intern_opensubdiv)
 	endif()
 
 	foreach(SORTLIB ${BLENDER_SORTED_LIBS})

@@ -43,6 +43,12 @@ rna_reverse_prop = BoolProperty(
         default=False,
         )
 
+rna_wrap_prop = BoolProperty(
+        name="Wrap",
+        description="Wrap back to the first/last values",
+        default=False,
+        )
+
 rna_relative_prop = BoolProperty(
         name="Relative",
         description="Apply relative to the current value (delta)",
@@ -399,6 +405,7 @@ class WM_OT_context_cycle_int(Operator):
 
     data_path = rna_path_prop
     reverse = rna_reverse_prop
+    wrap = rna_wrap_prop
 
     def execute(self, context):
         data_path = self.data_path
@@ -413,14 +420,15 @@ class WM_OT_context_cycle_int(Operator):
 
         exec("context.%s = value" % data_path)
 
-        if value != eval("context.%s" % data_path):
-            # relies on rna clamping integers out of the range
-            if self.reverse:
-                value = (1 << 31) - 1
-            else:
-                value = -1 << 31
+        if self.wrap:
+            if value != eval("context.%s" % data_path):
+                # relies on rna clamping integers out of the range
+                if self.reverse:
+                    value = (1 << 31) - 1
+                else:
+                    value = -1 << 31
 
-            exec("context.%s = value" % data_path)
+                exec("context.%s = value" % data_path)
 
         return operator_path_undo_return(context, data_path)
 
@@ -433,6 +441,7 @@ class WM_OT_context_cycle_enum(Operator):
 
     data_path = rna_path_prop
     reverse = rna_reverse_prop
+    wrap = rna_wrap_prop
 
     def execute(self, context):
         data_path = self.data_path
@@ -460,15 +469,18 @@ class WM_OT_context_cycle_enum(Operator):
         enums = rna_struct.properties[rna_prop_str].enum_items.keys()
         orig_index = enums.index(orig_value)
 
-        # Have the info we need, advance to the next item
+        # Have the info we need, advance to the next item.
+        #
+        # When wrap's disabled we may set the value to its self,
+        # this is done to ensure update callbacks run.
         if self.reverse:
             if orig_index == 0:
-                advance_enum = enums[-1]
+                advance_enum = enums[-1] if self.wrap else enums[0]
             else:
                 advance_enum = enums[orig_index - 1]
         else:
             if orig_index == len(enums) - 1:
-                advance_enum = enums[0]
+                advance_enum = enums[0] if self.wrap else enums[-1]
             else:
                 advance_enum = enums[orig_index + 1]
 
@@ -974,10 +986,12 @@ class WM_OT_doc_view_manual(Operator):
         url = self._lookup_rna_url(rna_id)
 
         if url is None:
-            self.report({'WARNING'}, "No reference available %r, "
-                                     "Update info in 'rna_wiki_reference.py' "
-                                     " or callback to bpy.utils.manual_map()" %
-                                     self.doc_id)
+            self.report(
+                    {'WARNING'},
+                    "No reference available %r, "
+                    "Update info in 'rna_manual_reference.py' "
+                    "or callback to bpy.utils.manual_map()" %
+                    self.doc_id)
             return {'CANCELLED'}
         else:
             import webbrowser
@@ -1130,7 +1144,11 @@ class WM_OT_properties_edit(Operator):
             )
 
     def execute(self, context):
-        from rna_prop_ui import rna_idprop_ui_prop_get, rna_idprop_ui_prop_clear
+        from rna_prop_ui import (
+                rna_idprop_ui_prop_get,
+                rna_idprop_ui_prop_clear,
+                rna_idprop_ui_prop_update,
+                )
 
         data_path = self.data_path
         value = self.value
@@ -1162,6 +1180,9 @@ class WM_OT_properties_edit(Operator):
         exec_str = "item[%r] = %s" % (prop, repr(value_eval))
         # print(exec_str)
         exec(exec_str)
+
+        rna_idprop_ui_prop_update(item, prop)
+
         self._last_prop[:] = [prop]
 
         prop_type = type(item[prop])
@@ -1243,7 +1264,10 @@ class WM_OT_properties_add(Operator):
     data_path = rna_path
 
     def execute(self, context):
-        from rna_prop_ui import rna_idprop_ui_prop_get
+        from rna_prop_ui import (
+                rna_idprop_ui_prop_get,
+                rna_idprop_ui_prop_update,
+                )
 
         data_path = self.data_path
         item = eval("context.%s" % data_path)
@@ -1261,6 +1285,7 @@ class WM_OT_properties_add(Operator):
         prop = unique_name(item.keys())
 
         item[prop] = 1.0
+        rna_idprop_ui_prop_update(item, prop)
 
         # not essential, but without this we get [#31661]
         prop_ui = rna_idprop_ui_prop_get(item, prop)
@@ -1296,10 +1321,14 @@ class WM_OT_properties_remove(Operator):
     property = rna_property
 
     def execute(self, context):
-        from rna_prop_ui import rna_idprop_ui_prop_clear
+        from rna_prop_ui import (
+                rna_idprop_ui_prop_clear,
+                rna_idprop_ui_prop_update,
+                )
         data_path = self.data_path
         item = eval("context.%s" % data_path)
         prop = self.property
+        rna_idprop_ui_prop_update(item, prop)
         del item[prop]
         rna_idprop_ui_prop_clear(item, prop)
 
@@ -1385,7 +1414,7 @@ class WM_OT_copy_prev_settings(Operator):
         if os.path.isdir(path_dst):
             self.report({'ERROR'}, "Target path %r exists" % path_dst)
         elif not os.path.isdir(path_src):
-            self.report({'ERROR'}, "Source path %r exists" % path_src)
+            self.report({'ERROR'}, "Source path %r does not exist" % path_src)
         else:
             shutil.copytree(path_src, path_dst, symlinks=True)
 
@@ -1786,7 +1815,7 @@ class WM_OT_addon_disable(Operator):
             err_str = traceback.format_exc()
             print(err_str)
 
-        addon_utils.disable(self.module, handle_error=err_cb)
+        addon_utils.disable(self.module, default_set=True, handle_error=err_cb)
 
         if err_str:
             self.report({'ERROR'}, err_str)
@@ -2002,7 +2031,7 @@ class WM_OT_addon_install(Operator):
         # disable any addons we may have enabled previously and removed.
         # this is unlikely but do just in case. bug [#23978]
         for new_addon in addons_new:
-            addon_utils.disable(new_addon)
+            addon_utils.disable(new_addon, default_set=True)
 
         # possible the zip contains multiple addons, we could disallow this
         # but for now just use the first
@@ -2066,7 +2095,7 @@ class WM_OT_addon_remove(Operator):
             return {'CANCELLED'}
 
         # in case its enabled
-        addon_utils.disable(self.module)
+        addon_utils.disable(self.module, default_set=True)
 
         import shutil
         if isdir:
@@ -2106,15 +2135,9 @@ class WM_OT_addon_expand(Operator):
 
         module_name = self.module
 
-        # unlikely to fail, module should have already been imported
-        try:
-            # mod = __import__(module_name)
-            mod = addon_utils.addons_fake_modules.get(module_name)
-        except:
-            import traceback
-            traceback.print_exc()
-            return {'CANCELLED'}
+        mod = addon_utils.addons_fake_modules.get(module_name)
+        if mod is not None:
+            info = addon_utils.module_bl_info(mod)
+            info["show_expanded"] = not info["show_expanded"]
 
-        info = addon_utils.module_bl_info(mod)
-        info["show_expanded"] = not info["show_expanded"]
         return {'FINISHED'}

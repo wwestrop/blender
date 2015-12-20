@@ -24,6 +24,7 @@
  *  \ingroup edinterface
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "MEM_guardedalloc.h"
@@ -34,7 +35,7 @@
 #include "BLI_listbase.h"
 #include "BLI_string.h"
 
-#include "BLF_translation.h"
+#include "BLT_translation.h"
 
 #include "BKE_context.h"
 #include "BKE_global.h"
@@ -149,7 +150,7 @@ static void node_remove_linked(bNodeTree *ntree, bNode *rem_node)
 
 		if (node->flag & NODE_TEST) {
 			if (node->id)
-				node->id->us--;
+				id_us_min(node->id);
 			nodeFreeNode(ntree, node);
 		}
 	}
@@ -214,8 +215,22 @@ static void node_socket_add_replace(const bContext *C, bNodeTree *ntree, bNode *
 	}
 	else if (!node_from) {
 		node_from = nodeAddStaticNode(C, ntree, type);
-		node_from->locx = node_to->locx - (node_from->typeinfo->width + 50);
-		node_from->locy = node_to->locy;
+		if (node_prev != NULL) {
+			/* If we're replacing existing node, use it's location. */
+			node_from->locx = node_prev->locx;
+			node_from->locy = node_prev->locy;
+			node_from->offsetx = node_prev->offsetx;
+			node_from->offsety = node_prev->offsety;
+		}
+		else {
+			/* Avoid exact intersection of nodes.
+			 * TODO(sergey): Still not ideal, but better than nothing.
+			 */
+			int index = BLI_findindex(&node_to->inputs, sock_to);
+			BLI_assert(index != -1);
+			node_from->locx = node_to->locx - (node_from->typeinfo->width + 50);
+			node_from->locy = node_to->locy - (node_from->typeinfo->height * index);
+		}
 		
 		node_link_item_apply(node_from, item);
 	}
@@ -509,7 +524,7 @@ static void ui_template_node_link_menu(bContext *C, uiLayout *layout, void *but_
 	bNodeSocket *sock = arg->sock;
 	bNodeTreeType *ntreetype = arg->ntree->typeinfo;
 
-	UI_block_flag_enable(block, UI_BLOCK_NO_FLIP);
+	UI_block_flag_enable(block, UI_BLOCK_NO_FLIP | UI_BLOCK_IS_FLIP);
 	UI_block_layout_set_current(block, layout);
 	split = uiLayoutSplit(layout, 0.0f, false);
 
@@ -607,7 +622,7 @@ static void ui_node_draw_input(uiLayout *layout, bContext *C, bNodeTree *ntree, 
 	uiLayout *split, *row, *col;
 	bNode *lnode;
 	char label[UI_MAX_NAME_STR];
-	int indent = (depth > 1) ? 2 * (depth - 1) : 0;
+	int i, indent = (depth > 1) ? 2 * (depth - 1) : 0;
 	int dependency_loop;
 
 	if (input->flag & SOCK_UNAVAIL)
@@ -626,7 +641,8 @@ static void ui_node_draw_input(uiLayout *layout, bContext *C, bNodeTree *ntree, 
 	RNA_pointer_create(&ntree->id, &RNA_Node, node, &nodeptr);
 
 	/* indented label */
-	memset(label, ' ', indent);
+	for (i = 0; i < indent; i++)
+		label[i] = ' ';
 	label[indent] = '\0';
 	BLI_snprintf(label, UI_MAX_NAME_STR, "%s%s:", label, IFACE_(input->name));
 

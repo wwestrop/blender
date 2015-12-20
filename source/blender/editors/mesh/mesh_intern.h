@@ -109,6 +109,7 @@ void MESH_OT_inset(struct wmOperatorType *ot);
 
 /* *** editmesh_intersect.c *** */
 void MESH_OT_intersect(struct wmOperatorType *ot);
+void MESH_OT_intersect_boolean(struct wmOperatorType *ot);
 void MESH_OT_face_split_by_edges(struct wmOperatorType *ot);
 
 
@@ -173,8 +174,10 @@ void MESH_OT_vert_connect(struct wmOperatorType *ot);
 void MESH_OT_vert_connect_path(struct wmOperatorType *ot);
 void MESH_OT_vert_connect_concave(struct wmOperatorType *ot);
 void MESH_OT_vert_connect_nonplanar(struct wmOperatorType *ot);
+void MESH_OT_face_make_planar(struct wmOperatorType *ot);
 void MESH_OT_edge_split(struct wmOperatorType *ot);
 void MESH_OT_bridge_edge_loops(struct wmOperatorType *ot);
+void MESH_OT_offset_edge_loops(struct wmOperatorType *ot);
 void MESH_OT_wireframe(struct wmOperatorType *ot);
 void MESH_OT_convex_hull(struct wmOperatorType *ot);
 void MESH_OT_symmetrize(struct wmOperatorType *ot);

@@ -43,6 +43,8 @@ void BKE_movieclip_free(struct MovieClip *clip);
 void BKE_movieclip_unlink(struct Main *bmain, struct MovieClip *clip);
 
 struct MovieClip *BKE_movieclip_file_add(struct Main *bmain, const char *name);
+struct MovieClip *BKE_movieclip_file_add_exists_ex(struct Main *bmain, const char *name, bool *r_exists);
+struct MovieClip *BKE_movieclip_file_add_exists(struct Main *bmain, const char *name);
 void BKE_movieclip_reload(struct MovieClip *clip);
 void BKE_movieclip_clear_cache(struct MovieClip *clip);
 void BKE_movieclip_clear_proxy_cache(struct MovieClip *clip);
@@ -60,7 +62,7 @@ void BKE_movieclip_user_set_frame(struct MovieClipUser *user, int framenr);
 
 void BKE_movieclip_update_scopes(struct MovieClip *clip, struct MovieClipUser *user, struct MovieClipScopes *scopes);
 
-void BKE_movieclip_get_cache_segments(struct MovieClip *clip, struct MovieClipUser *user, int *totseg_r, int **points_r);
+void BKE_movieclip_get_cache_segments(struct MovieClip *clip, struct MovieClipUser *user, int *r_totseg, int **r_points);
 
 void BKE_movieclip_build_proxy_frame(struct MovieClip *clip, int clip_flag, struct MovieDistortion *distortion,
                                      int cfra, int *build_sizes, int build_count, bool undistorted);
